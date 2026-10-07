@@ -1,0 +1,126 @@
+Quy tắc code :
+Project Coding Rules & Development Guidelines
+Before implementing or modifying any code in this project, review and follow all rules below.
+1. Architecture & Layering
+Follow the existing project architecture and design patterns.
+Repository must not be called directly from Controller.
+All Repository operations must go through the Service layer.
+Keep responsibilities separated:
+Controller: Handle HTTP requests/responses.
+Service: Business logic and workflow.
+Repository: Database access.
+Entity/Model: Database/domain representation.
+DTO: API request/response data.
+Mapper: Convert Entity ↔ DTO.
+Do not return Entity/Model directly from methods used by Controllers.
+Use Mapper classes to convert Entity → DTO and DTO → Entity where appropriate.
+2. Repository & JPA
+Prefer Spring Data JPA derived query methods when they can express the required query clearly.
+If only a boolean/existence result is required, prefer a boolean Repository method such as:
+`existsBy...`
+instead of retrieving an Entity unnecessarily.
+Keep Repository methods concise, reusable, and focused on data access.
+Do not put business logic into Repository.
+Reuse existing Repository methods when possible instead of creating duplicate queries.
+3. Service Layer
+Follow the current Service/ServiceImpl design pattern used in the project.
+Business logic must be handled in the Service layer.
+Keep Service methods clean and focused.
+Avoid duplicated business logic.
+Do not add code that is not required by the feature.
+Reuse existing logic/components where appropriate.
+4. Validation
+Validation configuration should be separated from business logic.
+Follow the project's existing validation mechanism instead of adding validation logic directly into unrelated classes.
+Keep validation rules consistent across APIs.
+5. Application Startup Workflow
+The application startup workflow should follow this order:
+Start application.
+Validate required environment/configuration values.
+Check whether an Admin account exists.
+Create the Admin account if required.
+Sensitive configuration values must not be hardcoded.
+6. Exception Handling
+Do NOT use `RuntimeException` directly.
+Use the project's existing custom exception mechanism such as `AppException`.
+Add new custom error codes when required.
+Handle exceptions consistently through the existing global exception handling mechanism.
+Keep HTTP status, error code, and message consistent with the project's response format.
+Vietnamese error messages should be used consistently throughout the project.
+7. DTO, Entity & Lombok
+Do not expose Entity/Model directly through Controller APIs.
+Use Request/Response DTOs.
+Use Mapper classes for Entity ↔ DTO conversion.
+Prefer Lombok annotations such as:
+`@Data`
+`@NoArgsConstructor`
+`@AllArgsConstructor`
+`@RequiredArgsConstructor`
+Avoid manually writing getters/setters/constructors when Lombok can handle them.
+Follow the existing project's Lombok usage style.
+8. Naming Convention
+Follow standard Java/Spring Boot naming conventions.
+Use clear and meaningful names.
+Follow the existing project's naming style for:
+Entity
+DTO
+Repository
+Service
+ServiceImpl
+Controller
+Mapper
+Exception
+ErrorCode
+Do not introduce inconsistent naming for the same concept.
+9. Code Quality
+Avoid duplicated code.
+Do not add unused methods, classes, imports, variables, dependencies, or configuration.
+Remove unnecessary comments.
+Keep comments only when they provide meaningful information that cannot be understood from the code itself.
+Do not over-engineer simple functionality.
+Reuse existing components when possible.
+Keep the implementation consistent with the existing codebase.
+10. Configuration & Sensitive Information
+Sensitive values must be stored in `.env` or the project's appropriate environment configuration.
+Never hardcode passwords, API keys, JWT secrets, database credentials, or other sensitive values.
+`.env` must be included in `.gitignore`.
+Do not commit sensitive configuration to Git.
+11. Git & .gitignore
+The project should ignore unnecessary IDE/build/environment files, including where applicable:
+`.vscode/`
+`.idea/`
+`.mvn/`
+`mvnw`
+`mvnw.cmd`
+`HELP.md`
+`.env`
+Follow the existing project's Git conventions and do not modify unrelated files.
+12. Scope Control
+Only implement/fix code required by the requested task.
+Do not create unnecessary files.
+Do NOT create unrelated documentation files such as:
+`.md`
+`.doc`
+`.docx`
+other documentation artifacts
+Do not modify unrelated modules or features.
+Before adding a new class, method, configuration, or dependency, check whether an existing one can be reused.
+13. Before Implementation
+Before modifying code:
+Inspect the existing implementation.
+Understand the current architecture and design pattern.
+Check existing Entity, DTO, Mapper, Repository, Service, Controller, Exception, and ErrorCode implementations.
+Reuse existing patterns and components.
+Confirm the required behavior.
+Implement only the necessary changes.
+Verify there is no duplicated or unused code.
+Ensure the project still follows the established coding conventions.
+14. General Principle
+Prefer the simplest clean implementation that:
+follows the existing architecture,
+uses Spring/JPA capabilities appropriately,
+is reusable,
+avoids unnecessary database queries,
+avoids duplicated code,
+keeps responsibilities separated,
+and does not introduce unrelated changes.

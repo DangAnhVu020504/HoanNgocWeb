@@ -1,0 +1,1 @@
+﻿Ghi chú: LOAI=2/MODE=-1 xác minh 'an toàn' trên DEMO vì không có dòng nào LOAI=2 (không xung đột) — cần xác minh lại trên production khi có DB thật.

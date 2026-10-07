@@ -1,0 +1,36 @@
+# .NET
+bin/
+obj/
+*.user
+logs/
+*.log
+
+# Node
+node_modules/
+dist/
+
+# Token / file tạm thời dùng khi kiểm thử API
+.tmp-*.txt
+*.log.*
+extractor-error.txt
+tmp-check.txt
+
+# Bản copy Firebird dùng cho sync/extractor (READ-ONLY, dữ liệu lớn)
+.tmp-fb/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# Secrets — không commit (mục 53)
+*.env
+appsettings.Production.json
+appsettings.Development.json
+
+# Tài khoản/mật khẩu — không commit
+docs/TAI-KHOAN-HE-THONG.md
+
+# Build output của tools
+discovery/
+mirror_ddl.sql

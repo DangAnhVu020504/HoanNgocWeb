@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TechPos.Api/TechPos.Api.csproj" />
+    <Project Path="src/TechPos.Application/TechPos.Application.csproj" />
+    <Project Path="src/TechPos.Data.Firebird/TechPos.Data.Firebird.csproj" />
+    <Project Path="src/TechPos.Data.MySql/TechPos.Data.MySql.csproj" />
+    <Project Path="src/TechPos.Domain/TechPos.Domain.csproj" />
+    <Project Path="src/TechPos.Reporting/TechPos.Reporting.csproj" />
+    <Project Path="src/TechPos.Shared/TechPos.Shared.csproj" />
+    <Project Path="src/TechPos.Sync.Core/TechPos.Sync.Core.csproj" />
+    <Project Path="src/TechPos.Sync.Service/TechPos.Sync.Service.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TechPos.UnitTests/TechPos.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/TechPos.AdminSeed/TechPos.AdminSeed.csproj" />
+    <Project Path="tools/TechPos.DataCompare/TechPos.DataCompare.csproj" />
+    <Project Path="tools/TechPos.FirebirdExtractor/TechPos.FirebirdExtractor.csproj" />
+    <Project Path="tools/TechPos.SchemaGenerator/TechPos.SchemaGenerator.csproj" />
+  </Folder>
+</Solution>
