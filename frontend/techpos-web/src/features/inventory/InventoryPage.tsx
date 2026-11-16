@@ -250,7 +250,7 @@ const LedgerTab: React.FC = () => {
           <Space direction="vertical" style={{ width: '100%' }} size={10}>
             <Input
               allowClear
-              placeholder="F3 — Tìm mã / tên hàng..."
+              placeholder="Tìm mã / tên hàng..."
               prefix={<SearchOutlined style={{ color: '#D4AF37' }} />}
               value={search}
               onChange={(e) => setSearch(e.target.value)}

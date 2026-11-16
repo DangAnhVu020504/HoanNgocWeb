@@ -264,7 +264,7 @@ const DashboardPage: React.FC = () => {
                   style={{ height: 44, borderRadius: 8 }}
                   onClick={() => navigate('/pos/retail')}
                 >
-                  🛒 Bán lẻ (F12)
+                  🛒 Bán lẻ
                 </Button>
               </Col>
               <Col xs={12} sm={8} md={4}>
@@ -282,7 +282,7 @@ const DashboardPage: React.FC = () => {
                   style={{ height: 44, borderRadius: 8, borderColor: 'rgba(212, 175, 55, 0.4)', fontWeight: 600 }}
                   onClick={() => navigate('/inventory')}
                 >
-                  📋 Tồn kho (F9)
+                  📋 Tồn kho
                 </Button>
               </Col>
               <Col xs={12} sm={8} md={4}>

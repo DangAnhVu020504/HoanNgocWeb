@@ -461,14 +461,14 @@ const RetailSalePage: React.FC = () => {
             title={
               <Space>
                 <ShoppingCartOutlined style={{ color: '#D4AF37' }} />
-                <span style={{ fontWeight: 700, color: '#1C180E' }}>Danh Sách Mặt Hàng (F3)</span>
+                <span style={{ fontWeight: 700, color: '#1C180E' }}>Danh Sách Mặt Hàng</span>
               </Space>
             }
             extra={
               <Input
                 allowClear
                 prefix={<SearchOutlined style={{ color: '#D4AF37' }} />}
-                placeholder="F3 — Tìm mã hoặc tên hàng..."
+                placeholder="Tìm mã hoặc tên hàng..."
                 style={{ width: 230, borderRadius: 8 }}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -565,7 +565,7 @@ const RetailSalePage: React.FC = () => {
               <Descriptions.Item label="Tiền hàng">
                 <b style={{ fontFamily: 'Outfit', fontSize: 15 }}>{fmtVnd(tienHang)}</b>
               </Descriptions.Item>
-              <Descriptions.Item label="Giảm giá (F7)">
+              <Descriptions.Item label="Giảm giá">
                 <Space>
                   <InputNumber
                     size="small"
@@ -707,7 +707,7 @@ const RetailSalePage: React.FC = () => {
                 disabled={lines.length === 0 || !khoId}
                 style={{ height: 46, paddingInline: 28, fontSize: 15 }}
               >
-                ⭐ THANH TOÁN (F12)
+                ⭐ THANH TOÁN
               </Button>
               <Button
                 size="large"

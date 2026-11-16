@@ -160,7 +160,7 @@ const CustomerDocPage: React.FC<Props> = ({ mode }) => {
             <Input
               allowClear
               prefix={<SearchOutlined style={{ color: '#D4AF37' }} />}
-              placeholder="F3 — Tìm mã / tên hàng..."
+              placeholder="Tìm mã / tên hàng..."
               style={{ width: 230, borderRadius: 8 }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}

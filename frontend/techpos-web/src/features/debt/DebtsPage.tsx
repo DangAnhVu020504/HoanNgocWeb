@@ -60,7 +60,7 @@ const CustomerDebts: React.FC = () => {
           <Input.Search
             allowClear
             prefix={<SearchOutlined style={{ color: '#D4AF37' }} />}
-            placeholder="F3 — Tìm mã / tên khách..."
+            placeholder="Tìm mã / tên khách..."
             style={{ width: 280, borderRadius: 8 }}
             onSearch={(v) => { setSearch(v); setPage(1); void load(1, v); }}
           />
@@ -177,7 +177,7 @@ const SupplierDebts: React.FC = () => {
           <Input.Search
             allowClear
             prefix={<SearchOutlined style={{ color: '#D4AF37' }} />}
-            placeholder="F3 — Tìm mã / tên NCC..."
+            placeholder="Tìm mã / tên NCC..."
             style={{ width: 280, borderRadius: 8 }}
             onSearch={(v) => { setSearch(v); setPage(1); void load(1, v); }}
           />

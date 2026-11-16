@@ -18,6 +18,7 @@ const SettingsPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [integrations, setIntegrations] = useState<IntegrationsStatus | null>(null);
   const canEdit = useAuthStore((s) => s.hasPermission('ADMIN.SETTINGS.MANAGE'));
+  const momoStatus = integrations?.momo ?? integrations?.moMo;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,7 +70,11 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  if (loading) return <Skeleton active />;
+  if (loading) return (
+    <Form form={form} layout="vertical">
+      <Skeleton active />
+    </Form>
+  );
 
   return (
     <Form form={form} layout="vertical" disabled={!canEdit}>
@@ -136,13 +141,13 @@ const SettingsPage: React.FC = () => {
         </Space>
       </Card>
 
-      {integrations && (
+      {integrations && momoStatus && (
         <Card size="small" className="luxury-card" style={{ marginTop: 16 }}
           title={<span className="card-title-gold">Tích hợp vận chuyển &amp; thanh toán</span>}>
           <Space direction="vertical" size={10} style={{ width: '100%' }}>
             {([
               ['COD', integrations.cod, integrations.cod.provider || 'Chưa chọn hãng vận chuyển'],
-              ['MoMo', integrations.momo, integrations.momo.provider],
+              ['MoMo', momoStatus, momoStatus.provider],
             ] as const).map(([name, s, provider]) => (
               <div key={name}>
                 <Space wrap>

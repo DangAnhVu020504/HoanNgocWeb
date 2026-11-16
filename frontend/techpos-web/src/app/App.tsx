@@ -41,7 +41,6 @@ import NotificationsPage from '../features/notifications/NotificationsPage';
 import EmailsPage from '../features/notifications/EmailsPage';
 import HistoryPage from '../features/history/HistoryPage';
 import CrmPage from '../features/crm/CrmPage';
-import MediaPage from '../features/media/MediaPage';
 import SettingsPage from '../features/settings/SettingsPage';
 import AdminUsersPage from '../features/admin/AdminUsersPage';
 import { useAuthStore } from '../stores/authStore';
@@ -97,7 +96,6 @@ const App: React.FC = () => (
             <Route path="/hr/intro-letters" element={<IntroLettersPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/crm" element={<CrmPage />} />
-            <Route path="/media" element={<MediaPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />

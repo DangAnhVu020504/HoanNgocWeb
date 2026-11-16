@@ -3,7 +3,7 @@ import { Avatar, Badge, Button, Drawer, Layout, Menu, Dropdown } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AppstoreOutlined, AuditOutlined, BarChartOutlined, BellOutlined, CustomerServiceOutlined, DatabaseOutlined,
-  HistoryOutlined, HomeOutlined, LogoutOutlined, MailOutlined, MenuOutlined, PictureOutlined,
+  HistoryOutlined, HomeOutlined, LogoutOutlined, MailOutlined, MenuOutlined,
   SafetyCertificateOutlined, SettingOutlined, ShoppingOutlined, SyncOutlined,
   TeamOutlined, UserOutlined, WalletOutlined
 } from '@ant-design/icons';
@@ -111,7 +111,6 @@ export const MOBILE_BOTTOM_NAV = [
 export const ADMIN_MENU_ITEMS = [
   { key: '/sync-admin', icon: <SyncOutlined />, label: 'SYNC ADMIN' },
   { key: '/emails', icon: <MailOutlined />, label: 'EMAIL / THÔNG BÁO' },
-  { key: '/media', icon: <PictureOutlined />, label: 'THƯ VIỆN MEDIA' },
   { key: '/admin/users', icon: <SafetyCertificateOutlined />, label: 'NGƯỜI DÙNG & PHÂN QUYỀN' },
   { key: '/settings', icon: <SettingOutlined />, label: 'CÀI ĐẶT HỆ THỐNG' }
 ];
@@ -348,21 +347,8 @@ export const DesktopLayout: React.FC<{ children: React.ReactNode }> = ({ childre
               className="gold-gradient-btn"
               onClick={() => navigate('/pos/retail')}
             >
-              ⚡ BÁN LẺ (F12)
+              ⚡ BÁN LẺ
             </Button>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              background: '#FAF8F2',
-              border: '1px solid #EFE9D9',
-              borderRadius: 6,
-              padding: '3px 10px',
-              fontSize: 12,
-              color: '#685F4D'
-            }}>
-              <span>📍</span> <b>Trụ sở chính</b>
-            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>

@@ -9,7 +9,8 @@ export interface IntegrationStatus {
 
 export interface IntegrationsStatus {
   cod: IntegrationStatus;
-  momo: IntegrationStatus;
+  momo?: IntegrationStatus;
+  moMo?: IntegrationStatus;
 }
 
 export async function getIntegrationStatus(): Promise<IntegrationsStatus> {

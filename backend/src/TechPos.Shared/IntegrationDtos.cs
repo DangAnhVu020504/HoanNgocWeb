@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TechPos.Shared;
 
 // ===================== Tích hợp COD / MoMo (Phase 8) =====================
@@ -11,7 +13,7 @@ public sealed record IntegrationStatusDto(
 
 public sealed record IntegrationsStatusDto(
     IntegrationStatusDto Cod,
-    IntegrationStatusDto MoMo);
+    [property: JsonPropertyName("momo")] IntegrationStatusDto MoMo);
 
 public sealed record MoMoCreatePaymentRequest(
     string DonHangId,

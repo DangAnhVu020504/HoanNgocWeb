@@ -240,7 +240,7 @@ const ProductsPage: React.FC = () => {
         <Space wrap size={12}>
           <Input
             allowClear
-            placeholder="F3 — Tìm mã / tên mặt hàng..."
+            placeholder="Tìm mã / tên mặt hàng..."
             prefix={<SearchOutlined style={{ color: '#D4AF37' }} />}
             style={{ width: 280, borderRadius: 8 }}
             value={search}
