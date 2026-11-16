@@ -19,10 +19,18 @@ public sealed class HrRepository
 
     private const string EmployeeCols =
         "e.ID, e.NAME, e.NOTE, e.STATUS, e.DIACHI AS DiaChi, e.DIENTHOAI AS DienThoai, " +
+        "COALESCE(NULLIF(we.EMAIL, ''), NULLIF(su.EMAIL, '')) AS Email, " +
         "COALESCE(e.CACHTINHLUONG,0) AS CachTinhLuong, COALESCE(e.LUONGCA,0) AS LuongCa, " +
         "COALESCE(e.LUONGTHANG,0) AS LuongThang, COALESCE(e.PHUCAP,0) AS PhuCap, " +
         "COALESCE(e.NGHITHU7,0) <> 0 AS NghiThu7, COALESCE(e.NGHICHUNHAT,0) <> 0 AS NghiChuNhat, " +
         "e.TIMECREATED, e.TIMEMODIFIED";
+
+    private const string EmployeeFrom =
+        "DNHANVIEN e " +
+        "LEFT JOIN W_EMPLOYEE_EMAIL we ON we.DNHANVIENID = e.ID " +
+        "LEFT JOIN (SELECT DNHANVIENID, MAX(EMAIL) AS EMAIL FROM SUSER " +
+        "WHERE DNHANVIENID IS NOT NULL AND TRIM(COALESCE(EMAIL, '')) <> '' GROUP BY DNHANVIENID) su " +
+        "ON su.DNHANVIENID = e.ID";
 
     public async Task<(IReadOnlyList<EmployeeDto> Items, long Total)> SearchEmployeesAsync(
         EmployeeListQuery q, CancellationToken ct = default)
@@ -44,7 +52,7 @@ public sealed class HrRepository
         await using var conn = await _factory.OpenAsync(ct);
         var total = await conn.ExecuteScalarAsync<long>($"SELECT COUNT(*) FROM DNHANVIEN e WHERE {whereSql}", dp);
         var rows = (await conn.QueryAsync<EmployeeDto>(
-            $"SELECT {EmployeeCols} FROM DNHANVIEN e WHERE {whereSql} " +
+            $"SELECT {EmployeeCols} FROM {EmployeeFrom} WHERE {whereSql} " +
             "ORDER BY e.NAME ASC LIMIT @limit OFFSET @offset",
             Merge(dp, new { limit = pageSize, offset }))).ToList();
         return (rows, total);
@@ -54,7 +62,46 @@ public sealed class HrRepository
     {
         await using var conn = await _factory.OpenAsync(ct);
         return await conn.QueryFirstOrDefaultAsync<EmployeeDto>(
-            $"SELECT {EmployeeCols} FROM DNHANVIEN e WHERE e.ID = @id AND e.W_DELETED = 0", new { id });
+            $"SELECT {EmployeeCols} FROM {EmployeeFrom} WHERE e.ID = @id AND e.W_DELETED = 0", new { id });
+    }
+
+    /// <summary>Ghi/clear email nhận lương (W_EMPLOYEE_EMAIL). Email rỗng ⇒ xoá override.</summary>
+    public async Task UpsertEmployeeEmailAsync(string employeeId, string? email, string? userId, CancellationToken ct = default)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            await conn.ExecuteAsync("DELETE FROM W_EMPLOYEE_EMAIL WHERE DNHANVIENID = @id",
+                new { id = employeeId });
+            return;
+        }
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO W_EMPLOYEE_EMAIL (DNHANVIENID, EMAIL, UPDATED_AT, UPDATED_BY)
+            VALUES (@id, @email, NOW(3), @uid)
+            ON DUPLICATE KEY UPDATE EMAIL = @email, UPDATED_AT = NOW(3), UPDATED_BY = @uid
+            """, new { id = employeeId, email = email.Trim(), uid = userId });
+    }
+
+    /// <summary>Email của nhiều nhân viên (W_EMPLOYEE_EMAIL, fallback SUSER.EMAIL) — dùng gửi phiếu lương.</summary>
+    public async Task<IReadOnlyDictionary<string, string>> GetEmployeeEmailsAsync(
+        IReadOnlyCollection<string> employeeIds, CancellationToken ct = default)
+    {
+        if (employeeIds.Count == 0) return new Dictionary<string, string>();
+        await using var conn = await _factory.OpenAsync(ct);
+        var rows = await conn.QueryAsync<EmployeeEmailRow>(
+            "SELECT e.ID AS EmployeeId, COALESCE(NULLIF(we.EMAIL, ''), NULLIF(su.EMAIL, '')) AS Email " +
+            $"FROM {EmployeeFrom} WHERE e.ID IN @ids",
+            new { ids = employeeIds });
+        return rows
+            .Where(r => !string.IsNullOrWhiteSpace(r.Email))
+            .ToDictionary(r => r.EmployeeId, r => r.Email, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private sealed class EmployeeEmailRow
+    {
+        public string EmployeeId { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
     }
 
     public async Task<string> InsertEmployeeAsync(EmployeeCreateRequest r, string userId, CancellationToken ct = default)

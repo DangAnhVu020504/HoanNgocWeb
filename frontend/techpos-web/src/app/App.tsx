@@ -19,6 +19,7 @@ import SalesOrderPage from '../features/sales/SalesOrderPage';
 import ContractsPage from '../features/sales/ContractsPage';
 import PurchaseOrdersPage from '../features/sales/PurchaseOrdersPage';
 import CodPage from '../features/sales/CodPage';
+import MoMoPage from '../features/payments/MoMoPage';
 import VehicleDeliveriesPage from '../features/sales/VehicleDeliveriesPage';
 import InventoryPage from '../features/inventory/InventoryPage';
 import ReceiptsPage from '../features/inventory/ReceiptsPage';
@@ -39,6 +40,10 @@ import ReportsPage from '../features/reports/ReportsPage';
 import NotificationsPage from '../features/notifications/NotificationsPage';
 import EmailsPage from '../features/notifications/EmailsPage';
 import HistoryPage from '../features/history/HistoryPage';
+import CrmPage from '../features/crm/CrmPage';
+import MediaPage from '../features/media/MediaPage';
+import SettingsPage from '../features/settings/SettingsPage';
+import AdminUsersPage from '../features/admin/AdminUsersPage';
 import { useAuthStore } from '../stores/authStore';
 
 dayjs.locale('vi');
@@ -77,6 +82,7 @@ const App: React.FC = () => (
             <Route path="/sales/order" element={<SalesOrderPage />} />
             <Route path="/sales/contract" element={<ContractsPage />} />
             <Route path="/sales/cod" element={<CodPage />} />
+            <Route path="/payments/momo" element={<MoMoPage />} />
             <Route path="/sales/vehicle-delivery" element={<VehicleDeliveriesPage />} />
             <Route path="/purchases/orders" element={<PurchaseOrdersPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
@@ -90,6 +96,10 @@ const App: React.FC = () => (
             <Route path="/hr/bonus" element={<BonusPenaltyPage />} />
             <Route path="/hr/intro-letters" element={<IntroLettersPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/crm" element={<CrmPage />} />
+            <Route path="/media" element={<MediaPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/emails" element={<EmailsPage />} />

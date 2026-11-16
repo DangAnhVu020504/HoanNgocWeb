@@ -58,8 +58,9 @@ const AllWarehousesPage: React.FC = () => {
 
   const columns = useMemo(() => {
     const base = [
-      { title: 'Mã hàng', dataIndex: 'code', width: 110 },
-      { title: 'Mặt hàng', dataIndex: 'name' },
+      { title: 'Mã hàng', dataIndex: 'code', width: 110,
+        render: (v: string | null) => v ? <span className="code-badge">{v}</span> : '—' },
+      { title: 'Mặt hàng', dataIndex: 'name', render: (v: string) => <b style={{ color: '#1C180E' }}>{v}</b> },
       { title: 'ĐVT', dataIndex: 'donViTinh', width: 70 },
     ];
     const khoCols = warehouses.map((w) => ({
@@ -78,18 +79,19 @@ const AllWarehousesPage: React.FC = () => {
   }, [warehouses]);
 
   return (
-    <Card size="small" title="Tồn tất cả các kho" extra={
+    <Card size="small" className="luxury-card" title={<span className="card-title-gold">Tồn tất cả các kho</span>} extra={
       <Space>
         <Select value={nonZeroOnly} onChange={onNonZeroChange} style={{ width: 190 }} options={[
           { value: true, label: 'Chỉ hàng có tồn ≠ 0' },
           { value: false, label: 'Tất cả mặt hàng' },
         ]} />
-        <Input allowClear prefix={<SearchOutlined />} placeholder="Tìm mã / tên hàng..."
+        <Input allowClear prefix={<SearchOutlined style={{ color: '#D4AF37' }} />} placeholder="Tìm mã / tên hàng..."
           style={{ width: 220 }} value={search} onChange={(e) => onSearch(e.target.value)} />
       </Space>
     }>
       <Table
-        size="small" rowKey="matHangId" loading={loading} dataSource={rows} columns={columns}
+        className="luxury-table"
+        size="middle" rowKey="matHangId" loading={loading} dataSource={rows} columns={columns}
         pagination={false} scroll={{ x: 'max-content' }}
       />
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>

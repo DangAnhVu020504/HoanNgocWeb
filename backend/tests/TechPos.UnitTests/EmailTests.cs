@@ -65,22 +65,22 @@ public class EmailWorkerRetryTests
     }
 
     [Fact]
-    public void SmtpEmailSender_invalid_host_returns_error_not_throw()
+    public async Task SmtpEmailSender_invalid_host_returns_error_not_throw()
     {
         var sender = new TechPos.Application.Notifications.SmtpEmailSender();
         // Host không tồn tại — SendAsync phải trả (false, error) chứ không ném exception
         var act = async () => await sender.SendAsync(
             "invalid.smtp.host.invalid", 25, false, null, null,
             "from@test.local", "Test", "to@test.local", "To", "S", "<p>b</p>");
-        var result = act.Invoking(async a => await a()).Should().NotThrowAsync().Result;
+        await act.Invoking(async a => await a()).Should().NotThrowAsync();
     }
 
     [Fact]
-    public void SmtpEmailSender_empty_host_fails_fast()
+    public async Task SmtpEmailSender_empty_host_fails_fast()
     {
         var sender = new TechPos.Application.Notifications.SmtpEmailSender();
         var act = () => sender.SendAsync("", 587, false, null, null,
             "from@t.local", null, "to@t.local", null, "S", null, default);
-        act.Invoking(async a => await a()).Should().NotThrowAsync().GetAwaiter().GetResult();
+        await act.Invoking(async a => await a()).Should().NotThrowAsync();
     }
 }

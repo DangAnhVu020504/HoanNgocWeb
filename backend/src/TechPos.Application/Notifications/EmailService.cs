@@ -50,7 +50,16 @@ public sealed class SmtpEmailSender : IEmailSender
         }
         catch (Exception ex)
         {
-            return (false, null, ex.Message);
+            // Ghép chuỗi exception lồng nhau — hiển thị lý do thật (VD "535-5.7.8 Username
+            // and Password not accepted") thay vì chỉ "Failure sending mail."
+            var detail = ex.Message;
+            var inner = ex.InnerException;
+            while (inner is not null)
+            {
+                detail += $" → {inner.Message}";
+                inner = inner.InnerException;
+            }
+            return (false, null, detail);
         }
     }
 }
@@ -97,7 +106,16 @@ public sealed class EmailService(EmailRepository repo, IEmailSender sender)
         await repo.SaveSettingAsync("PORT", req.Port.ToString(), ct);
         await repo.SaveSettingAsync("USE_SSL", req.UseSsl ? "1" : "0", ct);
         await repo.SaveSettingAsync("USERNAME", req.Username, ct);
-        if (!string.IsNullOrEmpty(req.Password)) await repo.SaveSettingAsync("PASSWORD", req.Password, ct);
+        if (!string.IsNullOrEmpty(req.Password))
+        {
+            // App Password Google hiển thị dạng "abcd efgh ijkl mnop" (có space) nhưng Gmail SMTP
+            // từ chối mật chứa space (verify: 535-5.7.8) → tự strip space khi đúng dạng 16 ký tự.
+            var pwd = req.Password;
+            var compact = System.Text.RegularExpressions.Regex.Replace(pwd, @"\s", "");
+            if (compact.Length == 16 && compact.Length != pwd.Length)
+                pwd = compact;
+            await repo.SaveSettingAsync("PASSWORD", pwd, ct);
+        }
         await repo.SaveSettingAsync("FROM_EMAIL", req.FromEmail, ct);
         await repo.SaveSettingAsync("FROM_NAME", req.FromName, ct);
     }

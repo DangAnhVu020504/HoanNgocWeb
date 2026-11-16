@@ -39,6 +39,8 @@ public sealed class HistoryRepository(MySqlConnectionFactory factory)
         public decimal? Tien { get; set; }
         public string? DienGiai { get; set; }
         public int Status { get; set; }
+        /// <summary>Đường dẫn PDF của chứng từ (null nếu loại không có bản in — giấy giới thiệu, thưởng phạt).</summary>
+        public string? PdfPath { get; set; }
     }
 
     private sealed class RawRow
@@ -53,6 +55,7 @@ public sealed class HistoryRepository(MySqlConnectionFactory factory)
         public DateTime? Ngay { get; set; }
         public DateTime TimeCreated { get; set; }
         public int Status { get; set; }
+        public string? PdfPath { get; set; }
     }
 
     private async Task<IReadOnlyList<HistoryItem>> QueryAsync(string sql, object prm, CancellationToken ct)
@@ -69,83 +72,97 @@ public sealed class HistoryRepository(MySqlConnectionFactory factory)
             DienGiai = r.DienGiai,
             Ngay = r.Ngay,
             TimeCreated = r.TimeCreated,
-            Status = r.Status
+            Status = r.Status,
+            PdfPath = r.PdfPath
         }).ToList();
     }
 
     // Mỗi bảng một nhánh UNION ALL — riêng TDONHANG phân loại theo LOAI/MODE.
     // Cột luôn prefix alias bảng để không ambiguous khi join W_USER.
+    // PdfPath tính sẵn theo bảng nguồn — tránh đoán prefix ở client (BL trùng giữa hoá đơn và bảng lương).
     private const string SqlUnion = """
         SELECT d.ID AS Id, d.NAME AS SoPhieu, d.LOAI AS LoaiNum, d.`MODE` AS Mode,
                u.USERNAME AS NguoiTao, d.TONGCONG AS Tien, d.DIENGIAI AS DienGiai,
-               d.NGAY AS Ngay, d.TIMECREATED AS TimeCreated, d.STATUS AS Status
+               d.NGAY AS Ngay, d.TIMECREATED AS TimeCreated, d.STATUS AS Status,
+               CASE WHEN d.LOAI IN (1, 2, 3)
+                    THEN CONCAT('/api/reports/invoices/', d.ID, '/pdf')
+                    ELSE CONCAT('/api/reports/stock-vouchers/', d.ID, '/pdf') END AS PdfPath
         FROM TDONHANG d LEFT JOIN W_USER u ON u.ID = d.USERCREATEDID
         WHERE d.W_ORIGIN = 'WEB' AND d.W_DELETED = 0 AND d.NAME LIKE '%26/%'
 
         UNION ALL
 
         SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, CASE WHEN COALESCE(t.THU,0) > 0 THEN t.THU ELSE t.CHI END,
-               t.DIENGIAI, t.NGAY, t.TIMECREATED, t.STATUS
+               t.DIENGIAI, t.NGAY, t.TIMECREATED, t.STATUS,
+               CONCAT('/api/reports/cash-vouchers/', t.ID, '/pdf')
         FROM TTHUCHI t LEFT JOIN W_USER u ON u.ID = t.USERCREATEDID
         WHERE t.W_ORIGIN = 'WEB' AND t.W_DELETED = 0
 
         UNION ALL
 
-        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, t.TONGCONG, NULL, t.NGAY, t.TIMECREATED, t.STATUS
+        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, t.TONGCONG, NULL, t.NGAY, t.TIMECREATED, t.STATUS,
+               CONCAT('/api/reports/quotations/', t.ID, '/pdf')
         FROM TBAOGIA t LEFT JOIN W_USER u ON u.ID = t.USERCREATEDID
         WHERE t.W_ORIGIN = 'WEB' AND t.W_DELETED = 0
 
         UNION ALL
 
-        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, t.TONGCONG, NULL, t.NGAY, t.TIMECREATED, t.STATUS
+        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, t.TONGCONG, NULL, t.NGAY, t.TIMECREATED, t.STATUS,
+               CONCAT('/api/reports/orders/', t.ID, '/pdf')
         FROM TDATHANG t LEFT JOIN W_USER u ON u.ID = t.USERCREATEDID
         WHERE t.W_ORIGIN = 'WEB' AND t.W_DELETED = 0
 
         UNION ALL
 
-        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, t.TONGCONG, NULL, t.NGAY, t.TIMECREATED, t.STATUS
+        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, t.TONGCONG, NULL, t.NGAY, t.TIMECREATED, t.STATUS,
+               CONCAT('/api/reports/purchase-orders/', t.ID, '/pdf')
         FROM TDATHANGNCC t LEFT JOIN W_USER u ON u.ID = t.USERCREATEDID
         WHERE t.W_ORIGIN = 'WEB' AND t.W_DELETED = 0
 
         UNION ALL
 
-        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, t.TONGCONG, NULL, t.NGAYKY, t.TIMECREATED, t.STATUS
+        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, t.TONGCONG, NULL, t.NGAYKY, t.TIMECREATED, t.STATUS,
+               CONCAT('/api/reports/contracts/', t.ID, '/pdf')
         FROM THOPDONG t LEFT JOIN W_USER u ON u.ID = t.USERCREATEDID
         WHERE t.W_ORIGIN = 'WEB' AND t.W_DELETED = 0
 
         UNION ALL
 
-        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, NULL, NULL, t.NGAY, t.TIMECREATED, t.STATUS
+        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, NULL, NULL, t.NGAY, t.TIMECREATED, t.STATUS,
+               CONCAT('/api/reports/cod-shipments/', t.ID, '/pdf')
         FROM TGUIHANGCOD t LEFT JOIN W_USER u ON u.ID = t.USERCREATEDID
         WHERE t.W_ORIGIN = 'WEB' AND t.W_DELETED = 0
 
         UNION ALL
 
-        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, NULL, NULL, t.NGAY, t.TIMECREATED, t.STATUS
+        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, NULL, NULL, t.NGAY, t.TIMECREATED, t.STATUS,
+               CONCAT('/api/reports/cod-results/', t.ID, '/pdf')
         FROM TKETQUAGUICOD t LEFT JOIN W_USER u ON u.ID = t.USERCREATEDID
         WHERE t.W_ORIGIN = 'WEB' AND t.W_DELETED = 0
 
         UNION ALL
 
-        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, NULL, NULL, t.NGAY, t.TIMECREATED, t.STATUS
+        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, NULL, NULL, t.NGAY, t.TIMECREATED, t.STATUS,
+               CONCAT('/api/reports/vehicle-deliveries/', t.ID, '/pdf')
         FROM TGIAOHANGTHEOXE t LEFT JOIN W_USER u ON u.ID = t.USERCREATEDID
         WHERE t.W_ORIGIN = 'WEB' AND t.W_DELETED = 0
 
         UNION ALL
 
-        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, NULL, NULL, t.NGAY, t.TIMECREATED, t.STATUS
+        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, NULL, NULL, t.NGAY, t.TIMECREATED, t.STATUS,
+               CONCAT('/api/payroll/', t.ID, '/pdf')
         FROM TBANGLUONG t LEFT JOIN W_USER u ON u.ID = t.USERCREATEDID
         WHERE t.W_ORIGIN = 'WEB' AND t.W_DELETED = 0
 
         UNION ALL
 
-        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, NULL, NULL, t.NGAY, t.TIMECREATED, t.STATUS
+        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, NULL, NULL, t.NGAY, t.TIMECREATED, t.STATUS, NULL
         FROM TGIAYGIOITHIEU t LEFT JOIN W_USER u ON u.ID = t.USERCREATEDID
         WHERE t.W_ORIGIN = 'WEB' AND t.W_DELETED = 0
 
         UNION ALL
 
-        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, COALESCE(t.THUONG,0) + COALESCE(t.PHAT,0), NULL, t.NGAY, t.TIMECREATED, t.STATUS
+        SELECT t.ID, t.NAME, 0, NULL, u.USERNAME, COALESCE(t.THUONG,0) + COALESCE(t.PHAT,0), NULL, t.NGAY, t.TIMECREATED, t.STATUS, NULL
         FROM TTHUONGPHAT t LEFT JOIN W_USER u ON u.ID = t.USERCREATEDID
         WHERE t.W_ORIGIN = 'WEB' AND t.W_DELETED = 0
         """;

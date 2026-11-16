@@ -13,6 +13,7 @@ public sealed class ProductDto
     public string? Note { get; set; }
     public decimal GiaBan { get; set; }
     public decimal GiaBan2 { get; set; }   // GIABAN2 = "Giá bán sỉ" (bán sỉ 4.2)
+    public decimal GiaBanChan { get; set; } // GIABANCHAN = "Giá bán chẵn" (bán theo đơn vị chẵn)
     public decimal GiaNhap { get; set; }
     public decimal GiaVon { get; set; }
     public decimal TonToiThieu { get; set; }
@@ -29,6 +30,9 @@ public sealed class ProductDto
     public bool CoSeri { get; set; }
     public DateTime? TimeCreated { get; set; }
     public DateTime? TimeModified { get; set; }
+
+    /// <summary>Tồn kho hiện tại (OTONKHO): theo kho đang chọn nếu query có KhoId, ngược lại tổng mọi kho.</summary>
+    public decimal TonKho { get; set; }
 }
 
 /// <summary>DTO danh mục nhóm mặt hàng (DNHOMMATHANG).</summary>
@@ -53,7 +57,8 @@ public sealed record ProductListQuery(
     bool? ActiveOnly = true,
     int Page = 1,
     int PageSize = 20,
-    string Sort = "NAME");
+    string Sort = "NAME",
+    string? KhoId = null);
 
 // ===================== Phase 4 CRUD (web ghi mirror, W_ORIGIN='WEB') =====================
 

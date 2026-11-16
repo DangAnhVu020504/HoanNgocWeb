@@ -1,4 +1,62 @@
-body { margin: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f5f5f5; }
-* { box-sizing: border-box; }
+@import './animations.css';
+
+:root {
+  --gold-primary: #D4AF37;
+  --gold-hover: #E5C158;
+  --gold-active: #B8860B;
+  --gold-deep: #8A6100;
+  --gold-champagne: #FFF9E6;
+  --gold-surface: #FFFDF0;
+  --gold-border: rgba(212, 175, 55, 0.25);
+
+  --pearl-white: #FFFFFF;
+  --canvas-bg: #FBFBFA;
+  --canvas-surface: #FAF8F2;
+  --text-heading: #1C180E;
+  --text-body: #403825;
+  --text-muted: #7E7359;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  background: var(--canvas-bg);
+  color: var(--text-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Luxury Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F4EEDC;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D4AF37;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B8860B;
+}
+
 /* Sticky action bar mobile POS — docs/architecture/FRONTEND-STRUCTURE.md */
-.sticky-action-bar { position: fixed; bottom: 60px; left: 0; right: 0; padding: 8px 12px; background: #fff; border-top: 1px solid #eee; }
+.sticky-action-bar {
+  position: fixed;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-top: 1px solid rgba(212, 175, 55, 0.25);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
+}

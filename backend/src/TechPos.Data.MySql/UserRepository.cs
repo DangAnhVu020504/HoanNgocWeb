@@ -28,6 +28,16 @@ public sealed class UserRepository
             "FROM W_USER WHERE USERNAME = @u LIMIT 1", new { u = username });
     }
 
+    public async Task<WUserRow?> GetUserByIdAsync(string userId, CancellationToken ct = default)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        return await conn.QueryFirstOrDefaultAsync<WUserRow>(
+            "SELECT ID AS Id, USERNAME AS Username, PASSWORD_HASH AS PasswordHash, FULL_NAME AS FullName, " +
+            "EMAIL AS Email, IS_ACTIVE AS IsActive, SUSER_ID AS SuserId, MUST_CHANGE_PASSWORD AS MustChangePassword, " +
+            "FAILED_LOGIN_COUNT AS FailedLoginCount, LOCKED_UNTIL AS LockedUntil, LAST_LOGIN_AT AS LastLoginAt " +
+            "FROM W_USER WHERE ID = @id LIMIT 1", new { id = userId });
+    }
+
     public async Task UpdateSuccessfulLoginAsync(string userId, CancellationToken ct = default)
     {
         await using var conn = await _factory.OpenAsync(ct);

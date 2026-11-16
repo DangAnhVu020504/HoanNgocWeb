@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Empty, Input, Select, Space, Table, Tabs, Tag, message } from 'antd';
+import { DownloadOutlined, EyeOutlined } from '@ant-design/icons';
 import {
   createCodShipment, createCodResult, getDeliveryPartners, getWebOrders,
   type LookupItem, type WebOrderItem,
 } from '../../api/salesdocs';
+import {
+  printCodShipmentPdf, downloadCodShipmentPdf, printCodResultPdf, downloadCodResultPdf,
+} from '../../api/reports';
 
 const fmtVnd = (n: number) => n.toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' ₫';
 
@@ -18,8 +22,12 @@ const CodPage: React.FC = () => {
   }, []);
 
   return (
-    <Card size="small">
+    <Card size="small" className="luxury-card">
+      <Alert type="info" showIcon style={{ marginBottom: 12 }}
+        message="Chưa kết nối API hãng vận chuyển — phiếu gửi COD đang tạo thủ công."
+        description="Điền Integrations:Cod (Provider/BaseUrl/ApiKey/ApiSecret) để bật tích hợp tự động." />
       <Tabs
+        className="luxury-tabs"
         items={[
           { key: 'ship', label: 'Gửi hàng COD', children: <CodShip partners={partners} orders={orders} /> },
           { key: 'result', label: 'Kết quả gửi COD', children: <CodResult partners={partners} orders={orders} /> },
@@ -34,7 +42,7 @@ const CodShip: React.FC<{ partners: LookupItem[]; orders: WebOrderItem[] }> = ({
   const [ghiChu, setGhiChu] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [last, setLast] = useState<string | null>(null);
+  const [last, setLast] = useState<{ id: string; text: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const save = async () => {
@@ -43,7 +51,7 @@ const CodShip: React.FC<{ partners: LookupItem[]; orders: WebOrderItem[] }> = ({
     setSaving(true); setErr(null);
     try {
       const r = await createCodShipment({ donViChuyenPhatId, nhanVienId: null, donHangIds: selected, ghiChu: ghiChu || null });
-      setLast(`Đã tạo phiếu gửi COD ${r.soPhieu} (${r.soDonHang} đơn)`);
+      setLast({ id: r.id, text: `Đã tạo phiếu gửi COD ${r.soPhieu} (${r.soDonHang} đơn)` });
       void message.success(`Đã tạo phiếu gửi COD ${r.soPhieu}`);
       setSelected([]); setGhiChu('');
     } catch (e: unknown) {
@@ -57,11 +65,18 @@ const CodShip: React.FC<{ partners: LookupItem[]; orders: WebOrderItem[] }> = ({
         onChange={setDonViChuyenPhatId} options={partners.map((p) => ({ value: p.id, label: p.name }))} />
       <Input allowClear placeholder="Ghi chú" style={{ maxWidth: 420 }} value={ghiChu} onChange={(e) => setGhiChu(e.target.value)} />
       <OrderPicker orders={orders} selected={selected} onChange={setSelected} />
-      <Button type="primary" loading={saving} onClick={save} disabled={selected.length === 0 || !donViChuyenPhatId}>
+      <Button type="primary" className="gold-gradient-btn" loading={saving} onClick={save} disabled={selected.length === 0 || !donViChuyenPhatId}>
         TẠO PHIẾU GỬI COD ({selected.length})
       </Button>
       {err && <Alert type="error" showIcon message={err} />}
-      {last && <Alert type="success" showIcon message={last} />}
+      {last && (
+        <Alert type="success" showIcon message={last.text} action={
+          <Space size={4}>
+            <Button size="small" icon={<EyeOutlined />} onClick={() => printCodShipmentPdf(last.id)}>Xem PDF</Button>
+            <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadCodShipmentPdf(last.id)}>Tải về máy</Button>
+          </Space>
+        } />
+      )}
     </Space>
   );
 };
@@ -71,7 +86,7 @@ const CodResult: React.FC<{ partners: LookupItem[]; orders: WebOrderItem[] }> = 
   const [ghiChu, setGhiChu] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [last, setLast] = useState<string | null>(null);
+  const [last, setLast] = useState<{ id: string; text: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const save = async () => {
@@ -80,7 +95,7 @@ const CodResult: React.FC<{ partners: LookupItem[]; orders: WebOrderItem[] }> = 
       const r = await createCodResult({
         donViChuyenPhatId: donViChuyenPhatId ?? null, nhanVienId: null, donHangIds: selected, ghiChu: ghiChu || null,
       });
-      setLast(`Đã nhập kết quả gửi COD ${r.soPhieu}`);
+      setLast({ id: r.id, text: `Đã nhập kết quả gửi COD ${r.soPhieu}` });
       void message.success(`Đã nhập kết quả ${r.soPhieu}`);
       setSelected([]); setGhiChu('');
     } catch (e: unknown) {
@@ -94,11 +109,18 @@ const CodResult: React.FC<{ partners: LookupItem[]; orders: WebOrderItem[] }> = 
         onChange={(v) => setDonViChuyenPhatId(v)} options={partners.map((p) => ({ value: p.id, label: p.name }))} />
       <Input allowClear placeholder="Ghi chú" style={{ maxWidth: 420 }} value={ghiChu} onChange={(e) => setGhiChu(e.target.value)} />
       <OrderPicker orders={orders} selected={selected} onChange={setSelected} />
-      <Button type="primary" loading={saving} onClick={save}>
+      <Button type="primary" className="gold-gradient-btn" loading={saving} onClick={save}>
         NHẬP KẾT QUẢ ({selected.length})
       </Button>
       {err && <Alert type="error" showIcon message={err} />}
-      {last && <Alert type="success" showIcon message={last} />}
+      {last && (
+        <Alert type="success" showIcon message={last.text} action={
+          <Space size={4}>
+            <Button size="small" icon={<EyeOutlined />} onClick={() => printCodResultPdf(last.id)}>Xem PDF</Button>
+            <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadCodResultPdf(last.id)}>Tải về máy</Button>
+          </Space>
+        } />
+      )}
     </Space>
   );
 };
@@ -116,7 +138,8 @@ const OrderPicker: React.FC<{ orders: WebOrderItem[]; selected: string[]; onChan
     <div>
       <Tag color="blue">Chọn đơn web để gắn vào phiếu ({selected.length} đã chọn)</Tag>
       <Table
-        size="small" rowKey="id" dataSource={orders} columns={columns} pagination={{ pageSize: 8 }}
+        className="luxury-table"
+        size="middle" rowKey="id" dataSource={orders} columns={columns} pagination={{ pageSize: 8 }}
         rowSelection={{ selectedRowKeys: selected, onChange: (keys) => onChange(keys as string[]) }}
         locale={{ emptyText: <Empty description="Chưa có đơn hàng web nào" /> }}
       />

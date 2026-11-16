@@ -14,6 +14,6 @@ public static class CurrentUser
 
     public static (string UserId, string Username, string Ip, string UserAgent) Info(HttpContext ctx)
         => (GetUserId(ctx), GetUsername(ctx),
-            ctx.Connection.RemoteIpAddress?.ToString(),
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "",
             ctx.Request.Headers.UserAgent.ToString());
 }

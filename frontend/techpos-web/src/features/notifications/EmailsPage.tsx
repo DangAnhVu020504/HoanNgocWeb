@@ -52,8 +52,8 @@ const TemplatesTab: React.FC = () => {
 
   return (
     <>
-    <Card size="small" title="Mẫu email (W_EMAIL_TEMPLATE)">
-      <Table size="small" rowKey="code" loading={loading} dataSource={rows}
+    <Card size="small" className="luxury-card" title={<span className="card-title-gold">Mẫu email (W_EMAIL_TEMPLATE)</span>}>
+      <Table className="luxury-table" size="middle" rowKey="code" loading={loading} dataSource={rows}
         pagination={{ pageSize: 10, showSizeChanger: false }}
         columns={[
           { title: 'Code', dataIndex: 'code', width: 180 },
@@ -107,8 +107,8 @@ const EventsTab: React.FC = () => {
   };
 
   return (
-    <Card size="small" title="Sự kiện email (19 events — bật/tắt gửi)">
-      <Table size="small" rowKey="code" loading={loading} dataSource={rows}
+    <Card size="small" className="luxury-card" title={<span className="card-title-gold">Sự kiện email (19 events — bật/tắt gửi)</span>}>
+      <Table className="luxury-table" size="middle" rowKey="code" loading={loading} dataSource={rows}
         pagination={{ pageSize: 10, showSizeChanger: false }}
         columns={[
           { title: 'Code', dataIndex: 'code', width: 200 },
@@ -150,14 +150,14 @@ const QueueTab: React.FC = () => {
   };
 
   return (
-    <Card size="small" title="Hàng đợi email" extra={
+    <Card size="small" className="luxury-card" title={<span className="card-title-gold">Hàng đợi email</span>} extra={
       <select value={status ?? ''} onChange={(e) => { setPage(1); setStatus(e.target.value || undefined); }}
-        style={{ padding: '4px 8px', border: '1px solid #d9d9d9', borderRadius: 6 }}>
+        style={{ padding: '5px 10px', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: 8, fontWeight: 600 }}>
         <option value="">Tất cả trạng thái</option>
         {Object.keys(STATUS_COLORS).map((s) => <option key={s} value={s}>{s}</option>)}
       </select>
     }>
-      <Table size="small" rowKey="id" loading={loading} dataSource={rows}
+      <Table className="luxury-table" size="middle" rowKey="id" loading={loading} dataSource={rows}
         pagination={{ current: page, pageSize: 20, total, showSizeChanger: false, onChange: (p) => setPage(p) }}
         columns={[
           { title: 'Event', dataIndex: 'eventType', width: 150 },
@@ -232,7 +232,7 @@ const SettingsTab: React.FC = () => {
   };
 
   return (
-    <Card size="small" title="Cấu hình SMTP (W_EMAIL_SETTINGS — password lưu DB, ưu tiên env production)">
+    <Card size="small" className="luxury-card" title={<span className="card-title-gold">Cấu hình SMTP (W_EMAIL_SETTINGS — password lưu DB, ưu tiên env production)</span>}>
       <Form form={form} layout="vertical" style={{ maxWidth: 520 }}>
         <Form.Item name="host" label="SMTP Host" rules={[{ required: true }]}>
           <Input placeholder="smtp.gmail.com" />
@@ -255,7 +255,7 @@ const SettingsTab: React.FC = () => {
           <Input placeholder="admin@congty.vn" />
         </Form.Item>
         <Space>
-          <Button type="primary" loading={saving} onClick={save} icon={<SendOutlined />}>Lưu cấu hình</Button>
+          <Button type="primary" className="gold-gradient-btn" loading={saving} onClick={save} icon={<SendOutlined />}>Lưu cấu hình</Button>
           <Button loading={testing} onClick={test}>Gửi email test</Button>
         </Space>
       </Form>
@@ -265,7 +265,7 @@ const SettingsTab: React.FC = () => {
 
 /** Trang Admin Email (Phase 7 — FRONTEND-STRUCTURE /emails). */
 const EmailsPage: React.FC = () => (
-  <Tabs items={[
+  <Tabs className="luxury-tabs" items={[
     { key: 'queue', label: 'Hàng đợi', children: <QueueTab /> },
     { key: 'templates', label: 'Mẫu email', children: <TemplatesTab /> },
     { key: 'events', label: 'Sự kiện', children: <EventsTab /> },

@@ -81,6 +81,18 @@ export async function createContract(req: ContractPayload): Promise<ContractResu
   return res.data.data;
 }
 
+/** Loại hợp đồng (DLOAIHOPDONG) — form hợp đồng. */
+export async function getContractTypes(): Promise<LookupItem[]> {
+  const res = await http.get<ApiEnvelope<LookupItem[]>>('/contracts/types');
+  return res.data.data;
+}
+
+/** Trạng thái hợp đồng (DTRANGTHAIHOPDONG) — form hợp đồng. */
+export async function getContractStatuses(): Promise<LookupItem[]> {
+  const res = await http.get<ApiEnvelope<LookupItem[]>>('/contracts/statuses');
+  return res.data.data;
+}
+
 // ===================== Phase 4.10 — Giao COD / Giao hàng theo xe =====================
 
 export interface LookupItem {

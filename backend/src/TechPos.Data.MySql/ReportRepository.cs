@@ -40,6 +40,33 @@ public sealed class ReportRepository
             """, dp)).ToList();
     }
 
+    // ---------- Doanh thu chi tiết theo hoá đơn ----------
+    public async Task<IReadOnlyList<RevenueDetailRow>> RevenueDetailAsync(ReportQuery q, CancellationToken ct = default)
+    {
+        var dp = new DynamicParameters();
+        var dateFilter = BuildDateFilter("h.NGAY", q, dp);
+
+        await using var conn = await _factory.OpenAsync(ct);
+        return (await conn.QueryAsync<RevenueDetailRow>(
+            $"""
+            SELECT h.ID AS DonHangId, h.NAME AS SoPhieu, h.NGAY AS Ngay,
+                   h.DKHACHHANGID AS KhachHangId, k.NAME AS KhachHang, k.DIENTHOAI AS DienThoai,
+                   nv.NAME AS NhanVien, kx.NAME AS Kho,
+                   COALESCE(h.TIENHANG,0) AS TienHang, COALESCE(h.TIENGIAMGIA,0) AS TienGiamGia,
+                   COALESCE(h.TIENTHUE,0) AS TienThue, COALESCE(h.PHIVANCHUYEN,0) AS PhiVanChuyen,
+                   COALESCE(h.TONGCONG,0) AS TongCong, COALESCE(h.THANHTOAN,0) AS ThanhToan,
+                   COALESCE(h.CONNO,0) AS ConNo, h.LOAI AS Loai
+            FROM TDONHANG h
+            LEFT JOIN DKHACHHANG k ON k.ID = h.DKHACHHANGID
+            LEFT JOIN DNHANVIEN nv ON nv.ID = h.DNHANVIENXUATID
+            LEFT JOIN DKHOHANG kx ON kx.ID = h.DKHOXUATID
+            WHERE h.W_DELETED = 0 {dateFilter}
+              AND h.DKHOXUATID IS NOT NULL AND h.DKHONHAPID IS NULL
+              AND h.LOAI IN (2, 3)
+            ORDER BY h.NGAY DESC, h.NAME DESC
+            """, dp)).ToList();
+    }
+
     // ---------- Mặt hàng bán chạy ----------
     public async Task<IReadOnlyList<SalesByItemRow>> SalesByItemAsync(ReportQuery q, CancellationToken ct = default)
     {
@@ -269,14 +296,197 @@ public sealed class ReportRepository
 
         return new StockVoucherPrintDto
         {
-            DocType = DocTypeResolver.ResolveByWarehouses(head.Loai, head.ModeVal,
-                head.KhoNhap != null, head.KhoXuat != null),
+            // TL (trả lại KH) có kho nhận → resolver nhận NHAP_KHO; ghi đè theo prefix số phiếu cho đúng tiêu đề
+            DocType = head.SoPhieu.StartsWith("TL", StringComparison.Ordinal)
+                ? "TRA_LAI_KH"
+                : DocTypeResolver.ResolveByWarehouses(head.Loai, head.ModeVal,
+                    head.KhoNhap != null, head.KhoXuat != null),
             SoPhieu = head.SoPhieu, Ngay = head.Ngay,
             KhoNhap = head.KhoNhap, KhoXuat = head.KhoXuat, DoiTac = head.DoiTac,
             DienGiai = head.DienGiai, GhiChu = head.GhiChu,
             TienHang = head.TienHang, TienGiamGia = head.TienGiamGia, TongCong = head.TongCong,
             Lines = lines
         };
+    }
+
+    // ---------- Chứng từ bán hàng in A4 (báo giá / đặt hàng KH / đặt mua NCC / hợp đồng) ----------
+
+    /// <summary>Đọc chứng từ bảng riêng theo loại để in — KHÔNG chứa SQL per-table ngoài các nhánh đã biết.</summary>
+    public async Task<SalesDocPrintDto?> GetSalesDocAsync(string id, string docType, CancellationToken ct = default)
+        => docType switch
+        {
+            "BAO_GIA" => await GetCustomerDocAsync(id, "TBAOGIA", "TBAOGIACHITIET", "TBAOGIAID", docType, ct),
+            "DAT_HANG" => await GetCustomerDocAsync(id, "TDATHANG", "TDATHANGCHITIET", "TDATHANGID", docType, ct),
+            "DAT_MUA_NCC" => await GetPurchaseOrderAsync(id, docType, ct),
+            "HOP_DONG" => await GetContractAsync(id, docType, ct),
+            _ => null
+        };
+
+    private async Task<SalesDocPrintDto?> GetCustomerDocAsync(
+        string id, string headTable, string lineTable, string fk, string docType, CancellationToken ct)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        var head = await conn.QueryFirstOrDefaultAsync<SalesDocPrintDto>(
+            $"""
+            SELECT @dt AS DocType, h.NAME AS SoPhieu, h.NGAY AS Ngay,
+                   COALESCE(NULLIF(h.TENKHACH,''), k.NAME) AS TenKhach,
+                   COALESCE(NULLIF(h.DIACHI,''), k.DIACHI) AS DiaChi,
+                   COALESCE(NULLIF(h.DIENTHOAI,''), k.DIENTHOAI) AS DienThoai,
+                   nv.NAME AS NhanVien, h.NOTE AS GhiChu,
+                   COALESCE(h.TIENHANG,0) AS TienHang, COALESCE(h.TIENTHUE,0) AS TienThue,
+                   COALESCE(h.TIENGIAMGIA,0) AS TienGiamGia, COALESCE(h.PHIVANCHUYEN,0) AS PhiVanChuyen,
+                   COALESCE(h.TONGCONG,0) AS TongCong
+            FROM {headTable} h
+            LEFT JOIN DKHACHHANG k ON k.ID = h.DKHACHHANGID
+            LEFT JOIN DNHANVIEN nv ON nv.ID = h.USERCREATEDID
+            WHERE h.ID = @id AND h.W_DELETED = 0
+            """, new { id, dt = docType });
+        if (head is null) return null;
+
+        head.Lines = (await conn.QueryAsync<SalesDocLineDto>(
+            $"""
+            SELECT m.NAME AS MatHang, u.NAME AS DonViTinh, COALESCE(c.SOLUONG,0) AS SoLuong,
+                   COALESCE(c.DONGIA,0) AS DonGia, COALESCE(c.TILEGIAMGIA,0) AS TileGiamGia,
+                   COALESCE(c.THANHTIEN,0) AS ThanhTien
+            FROM {lineTable} c
+            LEFT JOIN DMATHANG m ON m.ID = c.DMATHANGID
+            LEFT JOIN DDONVITINH u ON u.ID = m.DDONVITINHID
+            WHERE c.{fk} = @id AND c.W_DELETED = 0
+            ORDER BY c.TIMECREATED
+            """, new { id })).ToList();
+        return head;
+    }
+
+    private async Task<SalesDocPrintDto?> GetPurchaseOrderAsync(string id, string docType, CancellationToken ct)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        var head = await conn.QueryFirstOrDefaultAsync<SalesDocPrintDto>(
+            """
+            SELECT @dt AS DocType, h.NAME AS SoPhieu, h.NGAY AS Ngay, n.NAME AS TenKhach,
+                   n.DIACHI AS DiaChi, n.DIENTHOAI AS DienThoai, nv.NAME AS NhanVien, h.NOTE AS GhiChu,
+                   COALESCE(h.TIENHANG,0) AS TienHang, COALESCE(h.TIENTHUE,0) AS TienThue,
+                   COALESCE(h.TIENGIAMGIA,0) AS TienGiamGia, COALESCE(h.PHIVANCHUYEN,0) AS PhiVanChuyen,
+                   COALESCE(h.TONGCONG,0) AS TongCong
+            FROM TDATHANGNCC h
+            LEFT JOIN DNHACUNGCAP n ON n.ID = h.DNHACUNGCAPID
+            LEFT JOIN DNHANVIEN nv ON nv.ID = h.USERCREATEDID
+            WHERE h.ID = @id AND h.W_DELETED = 0
+            """, new { id, dt = docType });
+        if (head is null) return null;
+
+        head.Lines = (await conn.QueryAsync<SalesDocLineDto>(
+            """
+            SELECT m.NAME AS MatHang, u.NAME AS DonViTinh, COALESCE(c.SOLUONG,0) AS SoLuong,
+                   COALESCE(c.DONGIA,0) AS DonGia, COALESCE(c.TILEGIAMGIA,0) AS TileGiamGia,
+                   COALESCE(c.THANHTIEN,0) AS ThanhTien
+            FROM TDATHANGNCCCHITIET c
+            LEFT JOIN DMATHANG m ON m.ID = c.DMATHANGID
+            LEFT JOIN DDONVITINH u ON u.ID = m.DDONVITINHID
+            WHERE c.TDATHANGNCCID = @id AND c.W_DELETED = 0
+            ORDER BY c.TIMECREATED
+            """, new { id })).ToList();
+        return head;
+    }
+
+    private async Task<SalesDocPrintDto?> GetContractAsync(string id, string docType, CancellationToken ct)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        var head = await conn.QueryFirstOrDefaultAsync<SalesDocPrintDto>(
+            """
+            SELECT @dt AS DocType, h.NAME AS SoPhieu, h.NGAYKY AS Ngay, k.NAME AS TenKhach,
+                   k.DIACHI AS DiaChi, k.DIENTHOAI AS DienThoai, nv.NAME AS NhanVien, h.NOTE AS GhiChu,
+                   h.NGAYKY AS NgayKy, h.TUNGAY AS TuNgay, h.DENNGAY AS DenNgay,
+                   COALESCE(h.DATCOC,0) AS DatCoc, COALESCE(h.TONGCONG,0) AS TongCong
+            FROM THOPDONG h
+            LEFT JOIN DKHACHHANG k ON k.ID = h.DKHACHHANGID
+            LEFT JOIN DNHANVIEN nv ON nv.ID = h.DNHANVIENID
+            WHERE h.ID = @id AND h.W_DELETED = 0
+            """, new { id, dt = docType });
+        if (head is null) return null;
+
+        head.Lines = (await conn.QueryAsync<SalesDocLineDto>(
+            """
+            SELECT m.NAME AS MatHang, u.NAME AS DonViTinh, COALESCE(c.SOLUONG,0) AS SoLuong,
+                   COALESCE(c.DONGIA,0) AS DonGia, COALESCE(c.TILEGIAMGIA,0) AS TileGiamGia,
+                   COALESCE(c.THANHTIEN,0) AS ThanhTien
+            FROM THOPDONGCHITIET c
+            LEFT JOIN DMATHANG m ON m.ID = c.DMATHANGID
+            LEFT JOIN DDONVITINH u ON u.ID = m.DDONVITINHID
+            WHERE c.THOPDONGID = @id AND c.W_DELETED = 0
+            ORDER BY c.TIMECREATED
+            """, new { id })).ToList();
+        head.TienHang = head.Lines.Sum(l => l.ThanhTien);
+        return head;
+    }
+
+    // ---------- Phiếu gửi hàng in A4 (gửi COD / kết quả COD / giao xe) ----------
+
+    /// <summary>Đọc phiếu gửi hàng theo loại — lines là danh sách đơn hàng kèm theo phiếu.</summary>
+    public async Task<ShipmentDocPrintDto?> GetShipmentDocAsync(string id, string docType, CancellationToken ct = default)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        switch (docType)
+        {
+            case "GUI_COD":
+            {
+                var head = await conn.QueryFirstOrDefaultAsync<ShipmentDocPrintDto>(
+                    """
+                    SELECT @dt AS DocType, g.NAME AS SoPhieu, g.NGAY AS Ngay,
+                           cp.NAME AS DonViChuyenPhat, nv.NAME AS NhanVien, g.NOTE AS GhiChu
+                    FROM TGUIHANGCOD g
+                    LEFT JOIN DDONVICHUYENPHAT cp ON cp.ID = g.DDONVICHUYENPHATID
+                    LEFT JOIN DNHANVIEN nv ON nv.ID = g.DNHANVIENID
+                    WHERE g.ID = @id AND g.W_DELETED = 0
+                    """, new { id, dt = docType });
+                if (head is null) return null;
+                // Đơn gắn với phiếu qua DIENGIAI = 'Gửi COD {soPhieu}' (CodRepository.MarkOrdersAsync)
+                head.Lines = (await conn.QueryAsync<ShipmentDocLineDto>(
+                    """
+                    SELECT h.NAME AS SoDon, k.NAME AS KhachHang, h.NGAY AS Ngay, COALESCE(h.TONGCONG,0) AS TongCong
+                    FROM TDONHANG h
+                    LEFT JOIN DKHACHHANG k ON k.ID = h.DKHACHHANGID
+                    WHERE h.DIENGIAI = @dg AND h.W_ORIGIN = 'WEB' AND h.W_DELETED = 0
+                    ORDER BY h.TIMECREATED
+                    """, new { dg = $"Gửi COD {head.SoPhieu}" })).ToList();
+                head.TongTien = head.Lines.Sum(l => l.TongCong);
+                return head;
+            }
+            case "KET_QUA_COD":
+                return await conn.QueryFirstOrDefaultAsync<ShipmentDocPrintDto>(
+                    """
+                    SELECT @dt AS DocType, g.NAME AS SoPhieu, g.NGAY AS Ngay,
+                           cp.NAME AS DonViChuyenPhat, nv.NAME AS NhanVien, g.NOTE AS GhiChu
+                    FROM TKETQUAGUICOD g
+                    LEFT JOIN DDONVICHUYENPHAT cp ON cp.ID = g.DDONVICHUYENPHATID
+                    LEFT JOIN DNHANVIEN nv ON nv.ID = g.DNHANVIENID
+                    WHERE g.ID = @id AND g.W_DELETED = 0
+                    """, new { id, dt = docType });
+            case "GIAO_XE":
+            {
+                var head = await conn.QueryFirstOrDefaultAsync<ShipmentDocPrintDto>(
+                    """
+                    SELECT @dt AS DocType, g.NAME AS SoPhieu, g.NGAY AS Ngay,
+                           x.NAME AS XeGiaoHang, nv.NAME AS NhanVien, g.NOTE AS GhiChu
+                    FROM TGIAOHANGTHEOXE g
+                    LEFT JOIN DXEGIAOHANG x ON x.ID = g.DXEGIAOHANGID
+                    LEFT JOIN DNHANVIEN nv ON nv.ID = g.DNHANVIENID
+                    WHERE g.ID = @id AND g.W_DELETED = 0
+                    """, new { id, dt = docType });
+                if (head is null) return null;
+                head.Lines = (await conn.QueryAsync<ShipmentDocLineDto>(
+                    """
+                    SELECT h.NAME AS SoDon, k.NAME AS KhachHang, h.NGAY AS Ngay, COALESCE(h.TONGCONG,0) AS TongCong
+                    FROM TGIAOHANGTHEOXECHITIET c
+                    JOIN TDONHANG h ON h.ID = c.TDONHANGID
+                    LEFT JOIN DKHACHHANG k ON k.ID = h.DKHACHHANGID
+                    WHERE c.TGIAOHANGTHEOXEID = @id AND c.W_DELETED = 0
+                    ORDER BY h.TIMECREATED
+                    """, new { id })).ToList();
+                head.TongTien = head.Lines.Sum(l => l.TongCong);
+                return head;
+            }
+            default: return null;
+        }
     }
 
     // ---------- Công nợ khách hàng (tổng hợp cho báo cáo) ----------

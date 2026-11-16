@@ -63,16 +63,16 @@ const AttendancePage: React.FC = () => {
   };
 
   return (
-    <Card size="small" title="Chấm công" extra={
+    <Card size="small" className="luxury-card" title={<span className="card-title-gold">Chấm công</span>} extra={
       <Space wrap>
         <DatePicker.RangePicker value={khoangNgay} onChange={(v) => setKhoangNgay(v)} allowEmpty={[true, true]} />
         <Select allowClear showSearch optionFilterProp="label" placeholder="Nhân viên" style={{ width: 200 }}
           value={nhanVienId} onChange={(v) => { setNhanVienId(v ?? undefined); filter(v ?? undefined); }}
           options={employees.map((e) => ({ value: e.id, label: e.name }))} />
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>Chấm công</Button>
+        <Button type="primary" className="gold-gradient-btn" icon={<PlusOutlined />} onClick={() => setOpen(true)}>Chấm công</Button>
       </Space>
     }>
-      <Table size="small" rowKey="id" loading={loading} dataSource={rows}
+      <Table className="luxury-table" size="middle" rowKey="id" loading={loading} dataSource={rows}
         pagination={{ current: page, pageSize: 50, total, showSizeChanger: false,
           onChange: (p) => { setPage(p);
             void load(p, nhanVienId, khoangNgay?.[0]?.format('YYYY-MM-DD'), khoangNgay?.[1]?.format('YYYY-MM-DD')); } }}

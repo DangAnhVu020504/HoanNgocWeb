@@ -12,6 +12,8 @@ export interface HistoryItem {
   tien: number | null;
   dienGiai: string | null;
   status: number;
+  /** Đường dẫn PDF của chứng từ (null nếu loại không có bản in). */
+  pdfPath: string | null;
 }
 
 export async function getHistory(params: { search?: string; page?: number; pageSize?: number } = {}): Promise<PageResult<HistoryItem>> {

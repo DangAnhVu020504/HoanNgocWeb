@@ -21,7 +21,7 @@ public sealed record ImportResult(
 /// ProductService/CustomerService CreateAsync (đủ validator + ConflictException trùng mã).
 /// 1 dòng lỗi KHÔNG dừng cả file (dead-letter từng dòng).
 /// </summary>
-public sealed class CatalogImportService(ProductService products, CustomerService customers)
+public sealed class CatalogImportService(ProductService products, CustomerService customers, SupplierService suppliers)
 {
     public async Task<ImportResult> ImportProductsAsync(byte[] fileBytes, string userId, CancellationToken ct = default)
     {
@@ -97,6 +97,46 @@ public sealed class CatalogImportService(ProductService products, CustomerServic
                     MaSoThue: null, NguoiDaiDien: null, ChucVu: null, Facebook: null,
                     DiaChiGiaoHang: null, NhomKhachHangId: null,
                     SongayChoNo: songayChoNo), userId, ct);
+                created++;
+            }
+            catch (ConflictException) { skipped++; }
+            catch (ValidationException ex) { errors.Add(new ImportRowError(r, ex.Message)); }
+            catch (Exception ex) { errors.Add(new ImportRowError(r, ex.Message)); }
+        }
+
+        return new ImportResult(total, created, skipped, errors);
+    }
+
+    public async Task<ImportResult> ImportSuppliersAsync(byte[] fileBytes, string userId, CancellationToken ct = default)
+    {
+        using var ms = new MemoryStream(fileBytes);
+        using var wb = new XLWorkbook(ms);
+        var ws = wb.Worksheet(1);
+        var lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
+
+        var created = 0; var skipped = 0; var errors = new List<ImportRowError>();
+        var total = 0;
+
+        for (var r = 2; r <= lastRow; r++)
+        {
+            var name = ws.Cell(r, 2).GetString().Trim();     // cột 2 = "Tên nhà cung cấp"
+            if (string.IsNullOrEmpty(name)) continue;
+            total++;
+
+            try
+            {
+                var maNcc = ws.Cell(r, 1).GetString().Trim();      // "Mã NCC"
+                var dienThoai = ws.Cell(r, 3).GetString().Trim();  // "Điện thoại"
+                var diaChi = ws.Cell(r, 4).GetString().Trim();     // "Địa chỉ"
+                var email = ws.Cell(r, 5).GetString().Trim();      // "Email"
+
+                await suppliers.CreateAsync(new SupplierCreateRequest(
+                    Name: name,
+                    MaNhaCungCap: string.IsNullOrEmpty(maNcc) ? null : maNcc,
+                    DiaChi: string.IsNullOrEmpty(diaChi) ? null : diaChi,
+                    DienThoai: string.IsNullOrEmpty(dienThoai) ? null : dienThoai,
+                    Email: string.IsNullOrEmpty(email) ? null : email,
+                    Website: null, Note: null, NhomNhaCungCapId: null), userId, ct);
                 created++;
             }
             catch (ConflictException) { skipped++; }

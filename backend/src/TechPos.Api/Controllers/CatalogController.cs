@@ -85,7 +85,7 @@ public sealed class CustomersController(CustomerService customers, CatalogImport
         await file.CopyToAsync(ms, ct);
         var (uid, uname, ip, ua) = CurrentUser.Info(HttpContext);
         var result = await import.ImportCustomersAsync(ms.ToArray(), uid, ct);
-        await AuditLogger.WriteAsync(db, uid, uname, "IMPORT", "DKHACHHANG", null,
+        await AuditLogger.WriteAsync(db, uid, uname, "IMPORT", "DKHACHHANG", "",
             newValue: new { file.FileName, result.Created, result.Skipped, SoLoi = result.Errors.Count },
             ip: ip, userAgent: ua, correlationId: HttpContext.TraceIdentifier, ct: ct);
         return Ok(ApiResult<ImportResult>.Ok(result, HttpContext.TraceIdentifier));
@@ -96,7 +96,7 @@ public sealed class CustomersController(CustomerService customers, CatalogImport
 [ApiController]
 [Route("api/suppliers")]
 [Authorize]
-public sealed class SuppliersController(SupplierService suppliers, MySqlConnectionFactory db) : ControllerBase
+public sealed class SuppliersController(SupplierService suppliers, CatalogImportService import, MySqlConnectionFactory db) : ControllerBase
 {
     [HttpGet]
     [RequirePermission("DEBT.SUPPLIER.VIEW")]
@@ -130,6 +130,23 @@ public sealed class SuppliersController(SupplierService suppliers, MySqlConnecti
         await AuditLogger.WriteAsync(db, uid, uname, "CREATE", "DNHACUNGCAP", result.Id,
             newValue: req, ip: ip, userAgent: ua, correlationId: HttpContext.TraceIdentifier, ct: ct);
         return Ok(ApiResult<CatalogCreateResult>.Ok(result, HttpContext.TraceIdentifier));
+    }
+
+    /// <summary>Nhập Excel danh mục nhà cung cấp — cột như file xuất: Mã NCC|Tên|ĐT|Địa chỉ|Email|Nhóm NCC|Trạng thái.</summary>
+    [HttpPost("import")]
+    [RequirePermission("DEBT.SUPPLIER.CREATE")]
+    public async Task<IActionResult> Import(IFormFile file, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+            return Ok(ApiResult<string>.Fail("Chưa chọn file Excel", HttpContext.TraceIdentifier));
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms, ct);
+        var (uid, uname, ip, ua) = CurrentUser.Info(HttpContext);
+        var result = await import.ImportSuppliersAsync(ms.ToArray(), uid, ct);
+        await AuditLogger.WriteAsync(db, uid, uname, "IMPORT", "DNHACUNGCAP", "",
+            newValue: new { file.FileName, result.Created, result.Skipped, SoLoi = result.Errors.Count },
+            ip: ip, userAgent: ua, correlationId: HttpContext.TraceIdentifier, ct: ct);
+        return Ok(ApiResult<ImportResult>.Ok(result, HttpContext.TraceIdentifier));
     }
 
     [HttpPut("{id}")]

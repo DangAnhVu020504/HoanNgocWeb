@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TechPos.Api.Middleware;
+using TechPos.Application.Admin;
 using TechPos.Application.Reports;
 using TechPos.Shared;
 
@@ -13,7 +14,7 @@ namespace TechPos.Api.Controllers;
 [ApiController]
 [Route("api/reports")]
 [Authorize]
-public sealed class ReportsController(ReportService reports) : ControllerBase
+public sealed class ReportsController(ReportService reports, SettingsService settings) : ControllerBase
 {
     // ---------- Data endpoints (JSON) ----------
 
@@ -23,6 +24,13 @@ public sealed class ReportsController(ReportService reports) : ControllerBase
     public async Task<IActionResult> SalesByDay([FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)
         => Ok(ApiResult<IReadOnlyList<SalesByDayRow>>.Ok(
             await reports.SalesByDayAsync(new ReportQuery(from, to), ct), HttpContext.TraceIdentifier));
+
+    /// <summary>Doanh thu chi tiết từng hoá đơn (báo cáo nâng cao).</summary>
+    [HttpGet("revenue-detail")]
+    [RequirePermission("REPORT.ADVANCED.VIEW")]
+    public async Task<IActionResult> RevenueDetail([FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)
+        => Ok(ApiResult<IReadOnlyList<RevenueDetailRow>>.Ok(
+            await reports.RevenueDetailAsync(new ReportQuery(from, to), ct), HttpContext.TraceIdentifier));
 
     /// <summary>Mặt hàng bán chạy (TDONHANGCHITIET).</summary>
     [HttpGet("sales-by-item")]
@@ -186,7 +194,8 @@ public sealed class ReportsController(ReportService reports) : ControllerBase
     public async Task<IActionResult> InvoicePdf(string donHangId, CancellationToken ct)
     {
         var inv = await reports.GetInvoiceAsync(donHangId, ct);
-        return File(reports.InvoicePdf(inv), "application/pdf", $"hoa-don-{FileNameHelper.Sanitize(inv.SoPhieu)}.pdf");
+        var company = await settings.GetCompanyNameAsync(ct);
+        return File(reports.InvoicePdf(inv, company), "application/pdf", $"hoa-don-{FileNameHelper.Sanitize(inv.SoPhieu)}.pdf");
     }
 
     /// <summary>In phiếu thu/chi A5 (mục 5.1) — PDF stream.</summary>
@@ -195,7 +204,8 @@ public sealed class ReportsController(ReportService reports) : ControllerBase
     public async Task<IActionResult> CashVoucherPdf(string id, CancellationToken ct)
     {
         var v = await reports.GetCashVoucherPrintAsync(id, ct);
-        return File(reports.CashVoucherPdf(v), "application/pdf", $"phieu-{FileNameHelper.Sanitize(v.SoPhieu)}.pdf");
+        var company = await settings.GetCompanyNameAsync(ct);
+        return File(reports.CashVoucherPdf(v, company), "application/pdf", $"phieu-{FileNameHelper.Sanitize(v.SoPhieu)}.pdf");
     }
 
     /// <summary>In phiếu kho (nhập/xuất/chuyển/kiểm kê/trả NCC) A5 — PDF stream (mục 6.3).</summary>
@@ -204,7 +214,68 @@ public sealed class ReportsController(ReportService reports) : ControllerBase
     public async Task<IActionResult> StockVoucherPdf(string donHangId, CancellationToken ct)
     {
         var v = await reports.GetStockVoucherAsync(donHangId, ct);
-        return File(reports.StockVoucherPdf(v), "application/pdf", $"phieu-kho-{FileNameHelper.Sanitize(v.SoPhieu)}.pdf");
+        var company = await settings.GetCompanyNameAsync(ct);
+        return File(reports.StockVoucherPdf(v, company), "application/pdf", $"phieu-kho-{FileNameHelper.Sanitize(v.SoPhieu)}.pdf");
+    }
+
+    // ---------- Chứng từ bán hàng PDF A4 (báo giá / đặt hàng / đặt mua NCC / hợp đồng) ----------
+
+    [HttpGet("quotations/{id}/pdf")]
+    [RequirePermission("SALES.CUSTOMER.VIEW")]
+    public async Task<IActionResult> QuotationPdf(string id, CancellationToken ct)
+    {
+        var d = await reports.GetSalesDocAsync(id, "BAO_GIA", ct);
+        return File(reports.SalesDocPdf(d, await settings.GetCompanyNameAsync(ct)), "application/pdf", $"bao-gia-{FileNameHelper.Sanitize(d.SoPhieu)}.pdf");
+    }
+
+    [HttpGet("orders/{id}/pdf")]
+    [RequirePermission("SALES.CUSTOMER.VIEW")]
+    public async Task<IActionResult> OrderPdf(string id, CancellationToken ct)
+    {
+        var d = await reports.GetSalesDocAsync(id, "DAT_HANG", ct);
+        return File(reports.SalesDocPdf(d, await settings.GetCompanyNameAsync(ct)), "application/pdf", $"dat-hang-{FileNameHelper.Sanitize(d.SoPhieu)}.pdf");
+    }
+
+    [HttpGet("purchase-orders/{id}/pdf")]
+    [RequirePermission("DEBT.SUPPLIER.VIEW")]
+    public async Task<IActionResult> PurchaseOrderPdf(string id, CancellationToken ct)
+    {
+        var d = await reports.GetSalesDocAsync(id, "DAT_MUA_NCC", ct);
+        return File(reports.SalesDocPdf(d, await settings.GetCompanyNameAsync(ct)), "application/pdf", $"dat-mua-{FileNameHelper.Sanitize(d.SoPhieu)}.pdf");
+    }
+
+    [HttpGet("contracts/{id}/pdf")]
+    [RequirePermission("SALES.CUSTOMER.VIEW")]
+    public async Task<IActionResult> ContractPdf(string id, CancellationToken ct)
+    {
+        var d = await reports.GetSalesDocAsync(id, "HOP_DONG", ct);
+        return File(reports.SalesDocPdf(d, await settings.GetCompanyNameAsync(ct)), "application/pdf", $"hop-dong-{FileNameHelper.Sanitize(d.SoPhieu)}.pdf");
+    }
+
+    // ---------- Phiếu gửi hàng PDF A4 (gửi COD / kết quả COD / giao xe) ----------
+
+    [HttpGet("cod-shipments/{id}/pdf")]
+    [RequirePermission("SALES.CUSTOMER.VIEW")]
+    public async Task<IActionResult> CodShipmentPdf(string id, CancellationToken ct)
+    {
+        var d = await reports.GetShipmentDocAsync(id, "GUI_COD", ct);
+        return File(reports.ShipmentPdf(d, await settings.GetCompanyNameAsync(ct)), "application/pdf", $"gui-cod-{FileNameHelper.Sanitize(d.SoPhieu)}.pdf");
+    }
+
+    [HttpGet("cod-results/{id}/pdf")]
+    [RequirePermission("SALES.CUSTOMER.VIEW")]
+    public async Task<IActionResult> CodResultPdf(string id, CancellationToken ct)
+    {
+        var d = await reports.GetShipmentDocAsync(id, "KET_QUA_COD", ct);
+        return File(reports.ShipmentPdf(d, await settings.GetCompanyNameAsync(ct)), "application/pdf", $"ket-qua-cod-{FileNameHelper.Sanitize(d.SoPhieu)}.pdf");
+    }
+
+    [HttpGet("vehicle-deliveries/{id}/pdf")]
+    [RequirePermission("SALES.CUSTOMER.VIEW")]
+    public async Task<IActionResult> VehicleDeliveryPdf(string id, CancellationToken ct)
+    {
+        var d = await reports.GetShipmentDocAsync(id, "GIAO_XE", ct);
+        return File(reports.ShipmentPdf(d, await settings.GetCompanyNameAsync(ct)), "application/pdf", $"giao-xe-{FileNameHelper.Sanitize(d.SoPhieu)}.pdf");
     }
 }
 

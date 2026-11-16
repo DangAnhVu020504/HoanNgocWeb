@@ -16,12 +16,17 @@ public static class PosCalculator
         return RoundMoney(Math.Max(0, goc - giam));
     }
 
-    /// <summary>Tổng hoá đơn từ các dòng + giảm giá hoá đơn (tiền & %) + tiền khách đưa.</summary>
+    /// <summary>
+    /// Tổng hoá đơn từ các dòng + giảm giá hoá đơn (tiền & %) + tiền khách đưa
+    /// + tiền thuế + phí vận chuyển (cộng vào tổng cộng sau khi trừ giảm giá).
+    /// </summary>
     public static SaleTotals Compute(
         IReadOnlyList<PosCartItemDto> lines,
         decimal tileGiamGiaHoaDon,
         decimal tienGiamGiaHoaDon,
-        decimal khachDua)
+        decimal khachDua,
+        decimal tienThue = 0,
+        decimal phiVanChuyen = 0)
     {
         var tienHang = RoundMoney(lines.Sum(l =>
         {
@@ -34,12 +39,15 @@ public static class PosCalculator
         var giamTien = Math.Clamp(tienGiamGiaHoaDon, 0, tienHang);
         var giamTong = RoundMoney(Math.Min(giamTien + giamTile, tienHang));
 
-        var tongCong = RoundMoney(tienHang - giamTong);
+        var thue = RoundMoney(Math.Max(0, tienThue));
+        var phi = RoundMoney(Math.Max(0, phiVanChuyen));
+
+        var tongCong = RoundMoney(tienHang - giamTong + thue + phi);
         var khachDuaC = Math.Max(0, RoundMoney(khachDua));
         var traLai = RoundMoney(Math.Max(0, khachDuaC - tongCong));
         var conNo = RoundMoney(Math.Max(0, tongCong - khachDuaC));
 
-        return new SaleTotals(tienHang, giamTong, tongCong, khachDuaC, traLai, conNo);
+        return new SaleTotals(tienHang, giamTong, tongCong, khachDuaC, traLai, conNo, thue, phi);
     }
 
     public static decimal RoundMoney(decimal v) => Math.Round(v, 0, MidpointRounding.AwayFromZero);

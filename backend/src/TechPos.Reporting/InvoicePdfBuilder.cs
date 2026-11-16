@@ -6,12 +6,20 @@ using TechPos.Shared;
 namespace TechPos.Reporting;
 
 /// <summary>
-/// Sinh PDF hoá đơn A5 (QuestPDF 2025.7) — Phase 6 (KE-HOACH §6.3, ROADMAP Phase 6).
+/// Sinh PDF hoá đơn bán hàng A5 (QuestPDF 2025.7) — thiết kế "Royal Pearl & Champagne Gold".
 /// Input: InvoiceDto từ mirror (ReportRepository.GetInvoiceAsync). Không truy vấn DB.
+/// Bố cục: đầu hoá đơn (cửa hàng · số · ngày) → khối thông tin khách → bảng hàng có kẻ viền
+/// → khối tổng kết → số tiền bằng chữ → ghi chú → chữ ký → chân trang.
 /// </summary>
 public static class InvoicePdfBuilder
 {
     static InvoicePdfBuilder() => QuestPDF.Settings.License = LicenseType.Community;
+
+    private static readonly Color Gold = Color.FromHex("#D4AF37");
+    private static readonly Color GoldSoft = Color.FromHex("#FBF3DA");
+    private static readonly Color GoldDeep = Color.FromHex("#8A6100");
+    private static readonly Color Ink = Color.FromHex("#1C180E");
+    private static readonly Color Muted = Color.FromHex("#7E7359");
 
     public static byte[] Build(InvoiceDto inv, string companyName = "Cửa hàng Hoàn Ngọc")
     {
@@ -20,45 +28,94 @@ public static class InvoicePdfBuilder
             container.Page(page =>
             {
                 page.Size(PageSizes.A5);
-                page.Margin(24, Unit.Point);
-                page.DefaultTextStyle(x => x.FontSize(10));
+                page.Margin(22, Unit.Point);
+                page.DefaultTextStyle(x => x.FontSize(9.5f).FontColor(Ink));
 
+                // ===================== ĐẦU HOÁ ĐƠN =====================
                 page.Header().Column(col =>
                 {
-                    col.Item().AlignCenter().Text(companyName).Bold().FontSize(14);
-                    col.Item().AlignCenter().Text("HÓA ĐƠN BÁN HÀNG").FontSize(12);
-                    col.Item().PaddingTop(6, Unit.Point).Row(row =>
+                    col.Item().AlignCenter().Text(companyName).Bold().FontSize(15).FontColor(GoldDeep);
+                    col.Item().AlignCenter().Text("HÓA ĐƠN BÁN HÀNG")
+                        .FontSize(11).LetterSpacing(0.15f).SemiBold().FontColor(Ink);
+                    col.Item().PaddingTop(4).LineHorizontal(1.4f).LineColor(Gold);
+
+                    col.Item().PaddingTop(5).Row(row =>
                     {
-                        row.RelativeItem().Text($"Số phiếu: {inv.SoPhieu}").SemiBold();
-                        row.RelativeItem().AlignRight().Text(inv.Ngay?.ToString("dd/MM/yyyy HH:mm") ?? "");
+                        row.RelativeItem().Text(t =>
+                        {
+                            t.Span("Số: ").FontColor(Muted);
+                            t.Span(inv.SoPhieu).Bold().FontColor(GoldDeep);
+                        });
+                        row.RelativeItem().AlignRight().Text(t =>
+                        {
+                            t.Span("Ngày: ").FontColor(Muted);
+                            t.Span(inv.Ngay?.ToString("dd/MM/yyyy HH:mm") ?? "—");
+                        });
                     });
-                    if (!string.IsNullOrWhiteSpace(inv.KhachHang))
-                        col.Item().Text($"Khách hàng: {inv.KhachHang}");
-                    if (!string.IsNullOrWhiteSpace(inv.NhanVien))
-                        col.Item().Text($"Nhân viên: {inv.NhanVien}");
                 });
 
-                page.Content().PaddingVertical(8, Unit.Point).Column(col =>
+                // ===================== NỘI DUNG =====================
+                page.Content().PaddingTop(8).Column(col =>
                 {
-                    col.Spacing(6);
+                    col.Spacing(7);
 
-                    col.Item().Table(table =>
+                    // ---- Khối thông tin khách hàng / chứng từ ----
+                    col.Item().Background(GoldSoft).Border(0.5f).BorderColor(Gold).Padding(7).Column(info =>
+                    {
+                        info.Spacing(2);
+                        info.Item().Row(r =>
+                        {
+                            r.RelativeItem().Text(t =>
+                            {
+                                t.Span("Khách hàng: ").FontColor(Muted);
+                                t.Span(inv.KhachHang ?? "Khách lẻ").SemiBold();
+                            });
+                            if (!string.IsNullOrWhiteSpace(inv.DienThoai))
+                                r.RelativeItem().AlignRight().Text(t =>
+                                {
+                                    t.Span("ĐT: ").FontColor(Muted);
+                                    t.Span(inv.DienThoai);
+                                });
+                        });
+                        if (!string.IsNullOrWhiteSpace(inv.DiaChi))
+                            info.Item().Text(t =>
+                            {
+                                t.Span("Địa chỉ: ").FontColor(Muted);
+                                t.Span(inv.DiaChi);
+                            });
+                        info.Item().Row(r =>
+                        {
+                            r.RelativeItem().Text(t =>
+                            {
+                                t.Span("Nhân viên: ").FontColor(Muted);
+                                t.Span(inv.NhanVien ?? "—");
+                            });
+                            r.RelativeItem().AlignRight().Text(t =>
+                            {
+                                t.Span("Kho xuất: ").FontColor(Muted);
+                                t.Span(inv.Kho ?? "—");
+                            });
+                        });
+                    });
+
+                    // ---- Bảng mặt hàng (kẻ viền) ----
+                    col.Item().PaddingTop(2).Table(table =>
                     {
                         table.ColumnsDefinition(c =>
                         {
-                            c.ConstantColumn(22, Unit.Point);
+                            c.ConstantColumn(20, Unit.Point);
                             c.RelativeColumn(3);
-                            c.ConstantColumn(45, Unit.Point);
-                            c.ConstantColumn(45, Unit.Point);
-                            c.ConstantColumn(75, Unit.Point);
-                            c.ConstantColumn(70, Unit.Point);
+                            c.ConstantColumn(34, Unit.Point);
+                            c.ConstantColumn(34, Unit.Point);
+                            c.ConstantColumn(58, Unit.Point);
+                            c.ConstantColumn(64, Unit.Point);
                         });
 
                         table.Header(header =>
                         {
-                            header.Cell().Element(HeadCell).Text("STT");
-                            header.Cell().Element(HeadCell).Text("Mặt hàng");
-                            header.Cell().Element(HeadCell).Text("ĐVT");
+                            header.Cell().Element(HeadCell).AlignCenter().Text("STT");
+                            header.Cell().Element(HeadCell).Text("Tên hàng hóa");
+                            header.Cell().Element(HeadCell).AlignCenter().Text("ĐVT");
                             header.Cell().Element(HeadCell).AlignRight().Text("SL");
                             header.Cell().Element(HeadCell).AlignRight().Text("Đơn giá");
                             header.Cell().Element(HeadCell).AlignRight().Text("Thành tiền");
@@ -67,53 +124,113 @@ public static class InvoicePdfBuilder
                         var stt = 1;
                         foreach (var l in inv.Lines)
                         {
-                            table.Cell().Element(BodyCell).Text(stt.ToString());
+                            table.Cell().Element(BodyCell).AlignCenter().Text(stt.ToString());
                             table.Cell().Element(BodyCell).Text(l.MatHang ?? "");
-                            table.Cell().Element(BodyCell).Text(l.DonViTinh ?? "");
+                            table.Cell().Element(BodyCell).AlignCenter().Text(l.DonViTinh ?? "");
                             table.Cell().Element(BodyCell).AlignRight().Text(FormatQty(l.SoLuong));
                             table.Cell().Element(BodyCell).AlignRight().Text(FormatMoney(l.DonGia));
-                            table.Cell().Element(BodyCell).AlignRight().Text(FormatMoney(l.ThanhTien));
+                            table.Cell().Element(BodyCell).AlignRight().Text(FormatMoney(l.ThanhTien)).SemiBold();
                             stt++;
                         }
                     });
 
-                    col.Item().PaddingTop(4, Unit.Point).AlignRight().Text($"Tiền hàng: {FormatMoney(inv.TienHang)}");
-                    if (inv.TienGiamGia != 0)
-                        col.Item().AlignRight().Text($"Giảm giá: {FormatMoney(inv.TienGiamGia)}");
-                    col.Item().AlignRight().Text($"TỔNG CỘNG: {FormatMoney(inv.TongCong)} đ").Bold().FontSize(12);
-                    if (inv.KhachDua != 0)
+                    // ---- Khối tổng kết ----
+                    col.Item().PaddingTop(4).AlignRight().Width(210).Column(tot =>
                     {
-                        col.Item().AlignRight().Text($"Khách đưa: {FormatMoney(inv.KhachDua)}");
-                        col.Item().AlignRight().Text($"Trả lại: {FormatMoney(inv.TraLai)}");
-                    }
-                    if (inv.ConNo != 0)
-                        col.Item().AlignRight().Text($"Còn nợ: {FormatMoney(inv.ConNo)}").Bold();
+                        tot.Spacing(3);
+                        tot.Item().Row(r =>
+                        {
+                            r.RelativeItem().Text("Tiền hàng:").FontColor(Muted);
+                            r.ConstantItem(110).AlignRight().Text(FormatMoney(inv.TienHang));
+                        });
+                        if (inv.TienGiamGia != 0)
+                            tot.Item().Row(r =>
+                            {
+                                r.RelativeItem().Text("Giảm giá:").FontColor(Muted);
+                                r.ConstantItem(110).AlignRight().Text($"- {FormatMoney(inv.TienGiamGia)}").FontColor(Color.FromHex("#E11D48"));
+                            });
+                        tot.Item().LineHorizontal(0.5f).LineColor(Gold);
+                        tot.Item().Background(GoldSoft).PaddingVertical(3).PaddingHorizontal(5).Row(r =>
+                        {
+                            r.RelativeItem().Text("TỔNG CỘNG:").Bold().FontColor(GoldDeep);
+                            r.ConstantItem(110).AlignRight().Text($"{FormatMoney(inv.TongCong)} đ")
+                                .Bold().FontSize(12).FontColor(GoldDeep);
+                        });
+                        if (inv.KhachDua != 0)
+                            tot.Item().Row(r =>
+                            {
+                                r.RelativeItem().Text("Khách đưa:").FontColor(Muted);
+                                r.ConstantItem(110).AlignRight().Text(FormatMoney(inv.KhachDua));
+                            });
+                        if (inv.TraLai != 0)
+                            tot.Item().Row(r =>
+                            {
+                                r.RelativeItem().Text("Trả lại khách:").FontColor(Muted);
+                                r.ConstantItem(110).AlignRight().Text(FormatMoney(inv.TraLai)).FontColor(Color.FromHex("#10B981"));
+                            });
+                        if (inv.ConNo != 0)
+                            tot.Item().Row(r =>
+                            {
+                                r.RelativeItem().Text("Còn nợ:").FontColor(Muted);
+                                r.ConstantItem(110).AlignRight().Text(FormatMoney(inv.ConNo)).Bold().FontColor(Color.FromHex("#E11D48"));
+                            });
+                    });
 
-                    col.Item().PaddingTop(4, Unit.Point)
-                        .Text(VietnameseNumber.ToWords(inv.TongCong)).Italic().FontSize(9);
+                    // ---- Số tiền bằng chữ ----
+                    col.Item().PaddingTop(4).Text(t =>
+                    {
+                        t.Span("Số tiền bằng chữ: ").FontColor(Muted);
+                        t.Span(VietnameseNumber.ToWords(inv.TongCong)).Italic();
+                    });
 
                     if (!string.IsNullOrWhiteSpace(inv.GhiChu))
-                        col.Item().Text($"Ghi chú: {inv.GhiChu}").FontSize(9);
+                        col.Item().Text(t =>
+                        {
+                            t.Span("Ghi chú: ").FontColor(Muted);
+                            t.Span(inv.GhiChu);
+                        });
+
+                    // ---- Chữ ký ----
+                    col.Item().PaddingTop(18).Row(row =>
+                    {
+                        row.RelativeItem().AlignCenter().Column(c =>
+                        {
+                            c.Item().AlignCenter().Text("Người mua hàng").SemiBold().FontColor(GoldDeep);
+                            c.Item().AlignCenter().Text("(Ký, ghi rõ họ tên)").FontSize(8).FontColor(Muted);
+                        });
+                        row.RelativeItem().AlignCenter().Column(c =>
+                        {
+                            c.Item().AlignCenter().Text("Người bán hàng").SemiBold().FontColor(GoldDeep);
+                            c.Item().AlignCenter().Text("(Ký, ghi rõ họ tên)").FontSize(8).FontColor(Muted);
+                        });
+                    });
                 });
 
-                page.Footer().AlignCenter().Text(x =>
+                // ===================== CHÂN TRANG =====================
+                page.Footer().Column(col =>
                 {
-                    x.Span("Cảm ơn quý khách! ");
-                    x.Span($"— In lúc {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(8);
+                    col.Item().PaddingBottom(3).LineHorizontal(0.5f).LineColor(Gold);
+                    col.Item().AlignCenter().Text(t =>
+                    {
+                        t.Span("Cảm ơn quý khách — Hẹn gặp lại!").FontColor(GoldDeep).SemiBold();
+                        t.Span($"   ·   In lúc {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(8).FontColor(Muted);
+                    });
                 });
             });
         }).GeneratePdf();
     }
 
     private static IContainer HeadCell(IContainer c) =>
-        c.Background(Color.FromHex("#f0f0f0"))
-            .BorderBottom(0.5f, Unit.Point)
-            .Padding(3, Unit.Point);
+        c.Background(GoldSoft)
+            .Border(0.5f).BorderColor(Gold)
+            .PaddingVertical(4)
+            .PaddingHorizontal(4)
+            .DefaultTextStyle(x => x.FontSize(9).SemiBold().FontColor(GoldDeep));
 
     private static IContainer BodyCell(IContainer c) =>
-        c.BorderBottom(0.5f, Unit.Point)
-            .PaddingVertical(2, Unit.Point)
-            .PaddingHorizontal(3, Unit.Point);
+        c.Border(0.5f).BorderColor(Gold)
+            .PaddingVertical(3)
+            .PaddingHorizontal(4);
 
     private static string FormatQty(decimal q) => q % 1 == 0 ? ((long)q).ToString() : q.ToString("0.##");
     private static string FormatMoney(decimal v) => v.ToString("N0");

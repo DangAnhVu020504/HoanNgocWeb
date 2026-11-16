@@ -22,6 +22,8 @@ public sealed class EmployeeValidator : AbstractValidator<EmployeeCreateRequest>
         RuleFor(x => x.LuongThang).GreaterThanOrEqualTo(0)
             .When(x => x.CachTinhLuong == 1).WithMessage("Lương tháng phải ≥ 0");
         RuleFor(x => x.PhuCap).GreaterThanOrEqualTo(0).WithMessage("Phụ cấp phải ≥ 0");
+        RuleFor(x => x.Email).EmailAddress().MaximumLength(200).WithMessage("Email không hợp lệ")
+            .When(x => !string.IsNullOrWhiteSpace(x.Email));
     }
 }
 
@@ -106,6 +108,11 @@ public sealed class HrService(HrRepository repo, IOptions<FeatureFlagOptions> fl
         return e ?? throw new NotFoundException($"Không tìm thấy nhân viên {id}");
     }
 
+    /// <summary>Email nhận phiếu lương của các nhân viên (W_EMPLOYEE_EMAIL → SUSER.EMAIL).</summary>
+    public Task<IReadOnlyDictionary<string, string>> GetEmployeeEmailsAsync(
+        IReadOnlyCollection<string> employeeIds, CancellationToken ct = default)
+        => repo.GetEmployeeEmailsAsync(employeeIds, ct);
+
     public async Task<CatalogCreateResult> CreateEmployeeAsync(EmployeeCreateRequest req, string userId, CancellationToken ct = default)
     {
         CatalogWriteGuard.EnsureWriteAllowed(flags.Value);
@@ -114,6 +121,8 @@ public sealed class HrService(HrRepository repo, IOptions<FeatureFlagOptions> fl
             throw new ValidationException("Dữ liệu nhân viên không hợp lệ",
                 vr.Errors.Select(e => new ApiError(e.PropertyName ?? "", e.ErrorCode ?? "", e.ErrorMessage)).ToList());
         var id = await repo.InsertEmployeeAsync(req, userId, ct);
+        if (!string.IsNullOrWhiteSpace(req.Email))
+            await repo.UpsertEmployeeEmailAsync(id, req.Email, userId, ct);
         return new CatalogCreateResult(id, req.Name);
     }
 
@@ -121,8 +130,9 @@ public sealed class HrService(HrRepository repo, IOptions<FeatureFlagOptions> fl
     {
         CatalogWriteGuard.EnsureWriteAllowed(flags.Value);
         _ = await GetEmployeeAsync(id, ct);
-        var updated = await repo.UpdateEmployeeAsync(id, req, userId, ct);
-        if (updated == 0) throw new NotFoundException($"Không tìm thấy nhân viên {id}");
+        await repo.UpdateEmployeeAsync(id, req, userId, ct);
+        if (req.Email is not null)
+            await repo.UpsertEmployeeEmailAsync(id, req.Email, userId, ct);
         return await GetEmployeeAsync(id, ct);
     }
 

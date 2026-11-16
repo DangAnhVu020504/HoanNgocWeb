@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Empty, Input, InputNumber, Select, Space, Table, message } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import { createStocktake, getInventory, type InventoryItem, type StocktakeResult } from '../../api/inventory';
-import { printStockVoucherPdf } from '../../api/reports';
+import { printStockVoucherPdf, downloadStockVoucherPdf } from '../../api/reports';
 import { getWarehouses, type Warehouse } from '../../api/warehouses';
 
 const fmtVnd = (n: number) => n.toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' ₫';
@@ -76,7 +76,7 @@ const StocktakesPage: React.FC = () => {
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
-      <Card size="small">
+      <Card size="small" className="luxury-card">
         <Space wrap>
           <Select placeholder="Kho kiểm kê" style={{ width: 220 }} value={khoId ?? undefined}
             onChange={(v) => { setKhoId(v); setLastResult(null); }}
@@ -84,7 +84,7 @@ const StocktakesPage: React.FC = () => {
           <Input allowClear placeholder="Tìm mặt hàng..." style={{ width: 220 }} value={search}
             onChange={(e) => setSearch(e.target.value)} />
           <Button icon={<ReloadOutlined />} onClick={loadStock} loading={loading}>Tải tồn kho</Button>
-          <Button type="primary" onClick={save} loading={saving}
+          <Button type="primary" className="gold-gradient-btn" onClick={save} loading={saving}
             disabled={chenhLechRows.length === 0 || !khoId}>
             LẬP PHIẾU KIỂM KÊ ({chenhLechRows.length} chênh lệch)
           </Button>
@@ -100,11 +100,16 @@ const StocktakesPage: React.FC = () => {
             onClick={() => printStockVoucherPdf(lastResult.donHangId)}>
             In phiếu
           </Button>
+          <Button type="link" size="small" style={{ padding: 0, marginLeft: 8 }}
+            onClick={() => downloadStockVoucherPdf(lastResult.donHangId)}>
+            Tải về
+          </Button>
         </Card>
       )}
-      <Card size="small" title={`Bảng kiểm kê — SL hệ thống so với SL thực tế (${rows.length})`} styles={{ body: { padding: 0 } }}>
+      <Card size="small" className="luxury-card" title={<span className="card-title-gold">Bảng kiểm kê — SL hệ thống so với SL thực tế ({rows.length})</span>} styles={{ body: { padding: 0 } }}>
         <Table
-          size="small" rowKey="matHangId" loading={loading}
+          className="luxury-table"
+          size="middle" rowKey="matHangId" loading={loading}
           dataSource={rows.filter((r) => {
             const s = search.trim().toLowerCase();
             if (!s) return true;
@@ -112,12 +117,12 @@ const StocktakesPage: React.FC = () => {
           })}
           pagination={{ pageSize: 15, showTotal: (t) => `Tổng ${t} dòng` }}
           columns={[
-            { title: 'Mã', dataIndex: 'code', width: 110, render: (v) => <b>{v ?? '—'}</b> },
-            { title: 'Mặt hàng', dataIndex: 'name' },
+            { title: 'Mã', dataIndex: 'code', width: 110, render: (v) => v ? <span className="code-badge">{v}</span> : '—' },
+            { title: 'Mặt hàng', dataIndex: 'name', render: (v: string) => <b style={{ color: '#1C180E' }}>{v}</b> },
             { title: 'SL hệ thống', dataIndex: 'ton', width: 110, align: 'right',
               render: (v: number) => v.toLocaleString('vi-VN') },
             { title: 'SL thực tế', width: 120, render: (_, r: StocktakeRow) => (
-              <InputNumber size="small" min={0} value={r.slThucTe}
+              <InputNumber size="small" min={0} precision={0} value={r.slThucTe}
                 status={r.slThucTe !== r.ton ? 'warning' : undefined}
                 onChange={(v) => setSlThucTe(r.matHangId, v ?? 0)} />
             ) },

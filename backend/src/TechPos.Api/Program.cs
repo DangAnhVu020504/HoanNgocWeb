@@ -5,12 +5,14 @@ using Serilog;
 using TechPos.Api.Middleware;
 using TechPos.Api.Hubs;
 using TechPos.Api.Workers;
+using TechPos.Application.Admin;
 using TechPos.Application.Auth;
 using TechPos.Application.Catalog;
 using TechPos.Application.Cashbook;
 using TechPos.Application.Hr;
 using TechPos.Application.Inventory;
 using TechPos.Application.Notifications;
+using TechPos.Application.Payments;
 using TechPos.Application.Pos;
 using TechPos.Application.Products;
 using TechPos.Application.Reports;
@@ -33,6 +35,8 @@ builder.Services.AddSingleton(Serilog.Log.Logger);
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.Section));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.Section));
 builder.Services.Configure<FeatureFlagOptions>(builder.Configuration.GetSection(FeatureFlagOptions.Section));
+builder.Services.Configure<MediaOptions>(builder.Configuration.GetSection(MediaOptions.Section));
+builder.Services.Configure<IntegrationOptions>(builder.Configuration.GetSection(IntegrationOptions.Section));
 var dbOptions = builder.Configuration.GetSection(DatabaseOptions.Section).Get<DatabaseOptions>() ?? new();
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>() ?? new();
 
@@ -109,7 +113,8 @@ builder.Services.AddScoped<ReportService>();
 builder.Services.AddSingleton<EmailRepository>();
 builder.Services.AddSingleton<NotificationRepository>();
 builder.Services.AddSingleton<EmailService>();
-builder.Services.AddScoped<NotificationService>();
+builder.Services.AddSingleton<NotificationService>();
+builder.Services.AddSingleton<INotificationBroadcaster, TechPos.Api.Hubs.SignalRNotificationBroadcaster>();
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 builder.Services.AddHostedService<TechPos.Api.Workers.EmailWorker>();
 builder.Services.AddHostedService<TechPos.Api.Workers.ScheduledJobsWorker>();
@@ -117,6 +122,21 @@ builder.Services.AddSignalR();
 
 // ----- Phase 6.4: Nhập Excel danh mục (mặt hàng / khách hàng) -----
 builder.Services.AddScoped<CatalogImportService>();
+
+// ----- Phase 8: Cài đặt hệ thống, media, CSKH, quản trị người dùng -----
+builder.Services.AddSingleton<SettingsRepository>();
+builder.Services.AddSingleton<MediaRepository>();
+builder.Services.AddSingleton<CrmRepository>();
+builder.Services.AddSingleton<AdminRepository>();
+builder.Services.AddScoped<SettingsService>();
+builder.Services.AddScoped<MediaService>();
+builder.Services.AddScoped<CrmService>();
+builder.Services.AddScoped<AdminService>();
+
+// ----- Phase 8: Thanh toán MoMo + tích hợp đối tác (COD placeholder) -----
+builder.Services.AddSingleton<PaymentRepository>();
+builder.Services.AddScoped<MoMoService>();
+builder.Services.AddHttpClient("momo", c => c.Timeout = TimeSpan.FromSeconds(30));
 
 // ----- Sync metadata (SyncController đọc/ghi qua MySQL — không cần Firebird) -----
 builder.Services.AddSingleton<SyncMetaRepository.MySqlConnectionFactoryLike>(sp =>

@@ -24,17 +24,10 @@ public sealed class WholesaleRepository
         {
             var map = await DocRepositoryHelpers.GetDocTypeAsync(conn, tx, "BAN_SI", ct);
 
-            // Kiểm tra đủ tồn tại kho xuất trước khi ghi (trừ kho CHOPHEPAMKHO=1 — cho phép âm)
-            var choPhepAm = await conn.ExecuteScalarAsync<long>(
-                "SELECT COALESCE(CHOPHEPAMKHO,0) FROM DKHOHANG WHERE ID = @kho LIMIT 1",
-                new { kho = req.KhoId }, tx) == 1;
-            if (!choPhepAm)
-            {
-                var stocks = await DocRepositoryHelpers.GetStockAsync(
-                    conn, tx, req.KhoId, req.Lines.Select(l => l.MatHangId).ToList(), ct);
-                foreach (var l in req.Lines)
-                    DocRepositoryHelpers.EnsureStock(stocks, l.MatHangId, l.SoLuong);
-            }
+            // Kiểm tra đủ tồn tại kho xuất trước khi ghi — tồn kho không được âm (áp dụng mọi kho)
+            var stocks = await DocRepositoryHelpers.GetStockAsync(
+                conn, tx, req.KhoId, req.Lines.Select(l => l.MatHangId).ToList(), ct);
+            DocRepositoryHelpers.EnsureStockTotals(stocks, req.Lines.Select(l => (l.MatHangId, l.SoLuong)));
 
             var soPhieu = await DocRepositoryHelpers.NextSoPhieuAsync(conn, tx, map.Prefix, ct);
             var donHangId = Guid.NewGuid().ToString();

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Badge, Card, Input, Select, Space, Table, Tag } from 'antd';
-import { SearchOutlined, HistoryOutlined } from '@ant-design/icons';
+import { Alert, Badge, Button, Card, Input, Select, Space, Table, Tag, Tooltip } from 'antd';
+import { SearchOutlined, HistoryOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { getHistory, type HistoryItem } from '../../api/history';
+import { viewHistoryPdf, downloadHistoryPdf } from '../../api/reports';
 
 const fmtVnd = (n: number | null | undefined) =>
   n === null || n === undefined ? '—' : n.toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' ₫';
@@ -57,24 +58,40 @@ const HistoryPage: React.FC = () => {
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const columns: ColumnsType<HistoryItem> = [
-    { title: 'Số phiếu', dataIndex: 'soPhieu', width: 130, render: (v) => <b style={{ color: '#8a6100' }}>{v}</b> },
+    { title: 'Số phiếu', dataIndex: 'soPhieu', width: 130, render: (v) => v ? <span className="code-badge">{v}</span> : '—' },
     { title: 'Loại', dataIndex: 'loai', width: 170 },
     { title: 'Nhóm', dataIndex: 'nhom', width: 110, render: (v) => <Tag color={nhomColor(v)}>{v}</Tag> },
     { title: 'Ngày chứng từ', dataIndex: 'ngay', width: 110, render: (v: string | null) => v ? new Date(v).toLocaleDateString('vi-VN') : '—' },
     { title: 'Thời gian tạo', dataIndex: 'timeCreated', width: 150, render: fmtTime },
     { title: 'Người tạo', dataIndex: 'nguoiTao', width: 110, render: (v) => v ? <Tag>{v}</Tag> : '—' },
-    { title: 'Tiền', dataIndex: 'tien', width: 130, align: 'right', render: fmtVnd },
+    { title: 'Tiền', dataIndex: 'tien', width: 130, align: 'right',
+      render: (v: number | null | undefined) => v ? <b className="money">{fmtVnd(v)}</b> : '—' },
     { title: 'Diễn giải', dataIndex: 'dienGiai', ellipsis: true },
     { title: 'Trạng thái', dataIndex: 'status', width: 110, align: 'center', render: statusBadge },
+    {
+      title: 'PDF', key: 'pdf', width: 110, align: 'center',
+      render: (_, r: HistoryItem) => r.pdfPath ? (
+        <Space size={0}>
+          <Tooltip title="Xem PDF">
+            <Button type="text" size="small" icon={<EyeOutlined />}
+              onClick={() => viewHistoryPdf(r.pdfPath ?? '')} />
+          </Tooltip>
+          <Tooltip title="Tải PDF">
+            <Button type="text" size="small" icon={<DownloadOutlined />}
+              onClick={() => downloadHistoryPdf(r.pdfPath ?? '', r.soPhieu)} />
+          </Tooltip>
+        </Space>
+      ) : <span style={{ color: '#ccc' }}>—</span>,
+    },
   ];
 
   const nhomOptions = Array.from(new Set(allItems.map((i) => i.nhom)));
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
-      <Card size="small">
+      <Card size="small" className="luxury-card">
         <Space wrap>
-          <Input allowClear placeholder="Tìm số phiếu / người tạo / diễn giải..." prefix={<SearchOutlined />}
+          <Input allowClear placeholder="Tìm số phiếu / người tạo / diễn giải..." prefix={<SearchOutlined style={{ color: '#D4AF37' }} />}
             style={{ width: 300 }} value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
           <Select allowClear placeholder="Lọc nhóm" style={{ width: 160 }} value={nhom}
@@ -86,8 +103,8 @@ const HistoryPage: React.FC = () => {
         </Space>
       </Card>
       {err && <Alert type="error" showIcon message={err} closable />}
-      <Card size="small" title={`Lịch sử chứng từ (${filtered.length}/${total})`} styles={{ body: { padding: 0 } }}>
-        <Table size="middle" rowKey="id" loading={loading} columns={columns} dataSource={paged}
+      <Card size="small" className="luxury-card" title={<span className="card-title-gold">Lịch sử chứng từ ({filtered.length}/{total})</span>} styles={{ body: { padding: 0 } }}>
+        <Table className="luxury-table" size="middle" rowKey="id" loading={loading} columns={columns} dataSource={paged}
           pagination={{
             current: page, pageSize, total: filtered.length, showSizeChanger: true,
             showTotal: (t) => `Tổng ${t} chứng từ`, pageSizeOptions: [20, 50, 100, 200]

@@ -63,8 +63,20 @@ public sealed class PurchaseOrdersController(PurchaseOrderService purchase) : Co
 [ApiController]
 [Route("api/contracts")]
 [Authorize]
-public sealed class ContractsController(ContractService contracts) : ControllerBase
+public sealed class ContractsController(ContractService contracts, LookupRepository lookups) : ControllerBase
 {
+    /// <summary>Tra cứu loại hợp đồng (DLOAIHOPDONG).</summary>
+    [HttpGet("types")]
+    [RequirePermission("SALES.CONTRACT.CREATE")]
+    public async Task<IActionResult> Types(CancellationToken ct)
+        => Ok(ApiResult<IReadOnlyList<LookupItem>>.Ok(await lookups.GetContractTypesAsync(ct), HttpContext.TraceIdentifier));
+
+    /// <summary>Tra cứu trạng thái hợp đồng (DTRANGTHAIHOPDONG).</summary>
+    [HttpGet("statuses")]
+    [RequirePermission("SALES.CONTRACT.CREATE")]
+    public async Task<IActionResult> Statuses(CancellationToken ct)
+        => Ok(ApiResult<IReadOnlyList<LookupItem>>.Ok(await lookups.GetContractStatusesAsync(ct), HttpContext.TraceIdentifier));
+
     [HttpPost]
     [RequirePermission("SALES.CONTRACT.CREATE")]
     public async Task<IActionResult> Create([FromBody] ContractRequest req, CancellationToken ct)

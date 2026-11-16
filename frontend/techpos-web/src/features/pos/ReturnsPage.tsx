@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Col, Descriptions, Empty, Input, InputNumber, Row, Select, Space, Table, message } from 'antd';
-import { DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { DeleteOutlined, DownloadOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { createCustomerReturn, type CustomerReturnResult } from '../../api/pos';
+import { downloadStockVoucherPdf, printStockVoucherPdf } from '../../api/reports';
 import { getProducts, type Product } from '../../api/products';
 import { getCustomers, type Customer } from '../../api/customers';
 import { getWarehouses, type Warehouse } from '../../api/warehouses';
@@ -38,8 +39,12 @@ const ReturnsPage: React.FC = () => {
       if (r.items.length > 0) setKhoNhanId((k) => k ?? r.items[0].id);
     }).catch(() => { });
     getCustomers({ pageSize: 200 }).then((r) => setCustomers(r.items)).catch(() => { });
-    getProducts({ pageSize: 50, activeOnly: true }).then((r) => setProducts(r.items)).catch(() => { });
   }, []);
+
+  // Tồn tại kho nhận đang chọn — reload khi đổi kho
+  useEffect(() => {
+    getProducts({ pageSize: 50, activeOnly: true, khoId: khoNhanId }).then((r) => setProducts(r.items)).catch(() => { });
+  }, [khoNhanId]);
 
   const tienHang = useMemo(() => lines.reduce((s, l) => s + l.soLuong * l.donGia, 0), [lines]);
   const giam = Math.min(Math.max(0, tienGiamGia), tienHang);
@@ -99,20 +104,23 @@ const ReturnsPage: React.FC = () => {
   return (
     <Row gutter={12}>
       <Col xs={24} lg={14}>
-        <Card size="small" title="Chọn mặt hàng trả lại" extra={
-          <Input allowClear prefix={<SearchOutlined />} placeholder="Tìm mã / tên hàng..."
+        <Card size="small" className="luxury-card" title={<span className="card-title-gold">Chọn mặt hàng trả lại</span>} extra={
+          <Input allowClear prefix={<SearchOutlined style={{ color: '#D4AF37' }} />} placeholder="Tìm mã / tên hàng..."
             style={{ width: 220 }} value={search} onChange={(e) => setSearch(e.target.value)} />
         }>
           <div style={{ maxHeight: 340, overflowY: 'auto' }}>
             <Row gutter={[8, 8]}>
               {filteredProducts.map((p) => (
                 <Col key={p.id} xs={12} md={8} lg={6}>
-                  <Card size="small" hoverable onClick={() => addLine(p)}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div>
-                    <div style={{ color: '#888', fontSize: 12 }}>{p.code ?? ''} · {p.donViTinh ?? ''}</div>
+                  <Card size="small" hoverable className="pos-product-card" onClick={() => addLine(p)}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: '#1C180E' }}>{p.name}</div>
+                    <div style={{ color: '#7E7359', fontSize: 12 }}>{p.code ?? ''} · {p.donViTinh ?? ''}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                      <span>{fmtVnd(p.giaBan)}</span>
-                      <PlusOutlined style={{ color: '#d4a017' }} />
+                      <span className="money">{fmtVnd(p.giaBan)}</span>
+                      <span style={{ fontSize: 12, color: p.tonKho > 0 ? '#10B981' : '#E11D48', fontWeight: 600 }}>
+                        Tồn: {p.tonKho.toLocaleString('vi-VN')}
+                      </span>
+                      <PlusOutlined style={{ color: '#D4AF37' }} />
                     </div>
                   </Card>
                 </Col>
@@ -122,14 +130,15 @@ const ReturnsPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card size="small" title={`Dòng trả lại (${lines.length})`} style={{ marginTop: 12 }} styles={{ body: { padding: 0 } }}>
+        <Card size="small" className="luxury-card" title={<span className="card-title-gold">Dòng trả lại ({lines.length})</span>} style={{ marginTop: 12 }} styles={{ body: { padding: 0 } }}>
           <Table
+            className="luxury-table"
             size="small" rowKey="matHangId" pagination={false}
             dataSource={lines}
             columns={[
               { title: 'Mặt hàng', dataIndex: 'tenMatHang' },
               { title: 'SL trả', width: 100, render: (_, l: ReturnLine) => (
-                <InputNumber size="small" min={0.001} value={l.soLuong}
+                <InputNumber size="small" min={1} precision={0} value={l.soLuong}
                   onChange={(v) => updateLine(l.matHangId, { soLuong: v ?? 1 })} />
               ) },
               { title: 'Đơn giá', width: 140, render: (_, l: ReturnLine) => (
@@ -148,7 +157,7 @@ const ReturnsPage: React.FC = () => {
       </Col>
 
       <Col xs={24} lg={10}>
-        <Card size="small" title="Phiếu khách trả lại">
+        <Card size="small" className="luxury-card" title={<span className="card-title-gold">Phiếu khách trả lại</span>}>
           <Space direction="vertical" style={{ width: '100%' }} size={8}>
             <Select placeholder="Kho nhận hàng về" style={{ width: '100%' }} value={khoNhanId ?? undefined}
               onChange={(v) => setKhoNhanId(v)}
@@ -167,7 +176,7 @@ const ReturnsPage: React.FC = () => {
                   onChange={(v) => setTienGiamGia(v ?? 0)} />
               </Descriptions.Item>
               <Descriptions.Item label="Tổng cộng">
-                <span style={{ color: '#8a6100', fontSize: 18, fontWeight: 700 }}>{fmtVnd(tongCong)}</span>
+                <span className="money" style={{ color: '#8A6100', fontSize: 18 }}>{fmtVnd(tongCong)}</span>
               </Descriptions.Item>
               <Descriptions.Item label="Tiền trả khách">
                 <InputNumber min={0} max={tongCong} step={10000} value={tienTraLai} style={{ width: 140 }}
@@ -176,6 +185,7 @@ const ReturnsPage: React.FC = () => {
             </Descriptions>
 
             <Button type="primary" size="large" block loading={saving} onClick={save}
+              className="gold-gradient-btn"
               disabled={lines.length === 0 || !khoNhanId}>
               TẠO PHIẾU TRẢ LẠI
             </Button>
@@ -184,6 +194,16 @@ const ReturnsPage: React.FC = () => {
             {last && (
               <Card size="small" style={{ background: '#f6ffed', borderColor: '#b7eb8f' }}>
                 <b>Phiếu {last.soPhieu}</b> — Tổng {fmtVnd(last.tongCong)} · Trả khách {fmtVnd(last.tienTraLai)}
+                <div style={{ marginTop: 6 }}>
+                  <Space>
+                    <Button size="small" icon={<EyeOutlined />} onClick={() => printStockVoucherPdf(last.donHangId)}>
+                      Xem PDF
+                    </Button>
+                    <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadStockVoucherPdf(last.donHangId)}>
+                      Tải về máy
+                    </Button>
+                  </Space>
+                </div>
               </Card>
             )}
           </Space>

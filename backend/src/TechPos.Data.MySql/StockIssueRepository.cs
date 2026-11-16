@@ -24,17 +24,10 @@ public sealed class StockIssueRepository
         {
             var map = await DocRepositoryHelpers.GetDocTypeAsync(conn, tx, "XUAT_KHO", ct);
 
-            // Chỉ chặn tồn khi kho KHÔNG cho phép âm (CHOPHEPAMKHO=1 → bỏ chặn)
-            var choPhepAm = await conn.ExecuteScalarAsync<long>(
-                "SELECT COALESCE(CHOPHEPAMKHO,0) FROM DKHOHANG WHERE ID = @kho LIMIT 1",
-                new { kho = req.KhoXuatId }, tx) == 1;
-            if (!choPhepAm)
-            {
-                var stocks = await DocRepositoryHelpers.GetStockAsync(
-                    conn, tx, req.KhoXuatId, req.Lines.Select(l => l.MatHangId).ToList(), ct);
-                foreach (var l in req.Lines)
-                    DocRepositoryHelpers.EnsureStock(stocks, l.MatHangId, l.SoLuong);
-            }
+            // Chặn xuất vượt tồn — tồn kho không được âm (áp dụng mọi kho)
+            var stocks = await DocRepositoryHelpers.GetStockAsync(
+                conn, tx, req.KhoXuatId, req.Lines.Select(l => l.MatHangId).ToList(), ct);
+            DocRepositoryHelpers.EnsureStockTotals(stocks, req.Lines.Select(l => (l.MatHangId, l.SoLuong)));
 
             var soPhieu = await DocRepositoryHelpers.NextSoPhieuAsync(conn, tx, map.Prefix, ct);
             var donHangId = Guid.NewGuid().ToString();

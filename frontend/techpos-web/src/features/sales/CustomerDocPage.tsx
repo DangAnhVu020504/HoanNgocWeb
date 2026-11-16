@@ -1,9 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Col, Descriptions, Empty, Input, InputNumber, Row, Select, Space, Table, message } from 'antd';
-import { DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import {
+  Alert, Button, Card, Col, Descriptions, Empty, Input, InputNumber, Row, Select,
+  Space, Table, message
+} from 'antd';
+import {
+  CheckCircleOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined,
+  PlusOutlined, SearchOutlined, ShoppingCartOutlined
+} from '@ant-design/icons';
 import {
   createQuotation, createOrder, type QuoteLineInput,
 } from '../../api/salesdocs';
+import {
+  printQuotationPdf, downloadQuotationPdf, printOrderPdf, downloadOrderPdf,
+} from '../../api/reports';
 import { getProducts, type Product } from '../../api/products';
 import { getCustomers, type Customer } from '../../api/customers';
 
@@ -20,10 +29,13 @@ interface DocLine {
 
 interface Props { mode: 'quote' | 'order'; }
 
-/** Báo giá (4.9) / Đặt hàng KH (4.9) — cùng cấu trúc TBAOGIA/TDATHANG, khác endpoint + nhãn. */
+/**
+ * Báo giá / Khách đặt hàng (White & Gold Luxury)
+ * Giữ nguyên 100% logic tạo báo giá, tạo đơn, in PDF & tải file.
+ */
 const CustomerDocPage: React.FC<Props> = ({ mode }) => {
   const isQuote = mode === 'quote';
-  const title = isQuote ? 'Báo giá bán hàng' : 'Khách đặt hàng';
+  const title = isQuote ? 'LẬP BÁO GIÁ BÁN HÀNG' : 'LẬP ĐƠN ĐẶT HÀNG';
   const submitLabel = isQuote ? 'TẠO BÁO GIÁ' : 'TẠO ĐƠN ĐẶT HÀNG';
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -40,7 +52,7 @@ const CustomerDocPage: React.FC<Props> = ({ mode }) => {
   const [phiVanChuyen, setPhiVanChuyen] = useState(0);
   const [ghiChu, setGhiChu] = useState('');
   const [saving, setSaving] = useState(false);
-  const [last, setLast] = useState<{ soPhieu: string; tongCong: number } | null>(null);
+  const [last, setLast] = useState<{ id: string; soPhieu: string; tongCong: number } | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -76,14 +88,26 @@ const CustomerDocPage: React.FC<Props> = ({ mode }) => {
       }];
     });
   };
+
   const updateLine = (matHangId: string, patch: Partial<DocLine>) =>
     setLines((prev) => prev.map((l) => l.matHangId === matHangId ? { ...l, ...patch } : l));
+
   const removeLine = (matHangId: string) =>
     setLines((prev) => prev.filter((l) => l.matHangId !== matHangId));
-  const resetForm = () => { setLines([]); setTienThue(0); setTienGiamGia(0); setPhiVanChuyen(0); setGhiChu(''); };
+
+  const resetForm = () => {
+    setLines([]);
+    setTienThue(0);
+    setTienGiamGia(0);
+    setPhiVanChuyen(0);
+    setGhiChu('');
+  };
 
   const save = async () => {
-    if (lines.length === 0) { void message.warning('Chưa có mặt hàng nào'); return; }
+    if (lines.length === 0) {
+      void message.warning('Chưa có mặt hàng nào');
+      return;
+    }
     setSaving(true);
     setErr(null);
     try {
@@ -96,7 +120,9 @@ const CustomerDocPage: React.FC<Props> = ({ mode }) => {
         lines: lines.map<QuoteLineInput>((l) => ({
           matHangId: l.matHangId, soLuong: l.soLuong, donGia: l.donGia, tileGiamGia: l.tileGiamGia, note: null,
         })),
-        tienThue, tienGiamGia: giam, phiVanChuyen,
+        tienThue,
+        tienGiamGia: giam,
+        phiVanChuyen,
         ghiChu: ghiChu.trim() || null,
       };
       const result = isQuote ? await createQuotation(payload) : await createOrder(payload);
@@ -119,24 +145,48 @@ const CustomerDocPage: React.FC<Props> = ({ mode }) => {
   }, [products, search]);
 
   return (
-    <Row gutter={12}>
+    <Row gutter={[16, 16]}>
+      {/* CỘT TRÁI: CHỌN MẶT HÀNG & DÒNG HÀNG */}
       <Col xs={24} lg={14}>
-        <Card size="small" title="Chọn mặt hàng" extra={
-          <Input allowClear prefix={<SearchOutlined />} placeholder="Tìm mã / tên hàng..."
-            style={{ width: 220 }} value={search} onChange={(e) => setSearch(e.target.value)} />
-        }>
-          <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+        <Card
+          className="luxury-card"
+          title={
+            <Space>
+              <ShoppingCartOutlined style={{ color: '#D4AF37' }} />
+              <span style={{ fontWeight: 700, color: '#1C180E' }}>Chọn Mặt Hàng Vào Chứng Từ</span>
+            </Space>
+          }
+          extra={
+            <Input
+              allowClear
+              prefix={<SearchOutlined style={{ color: '#D4AF37' }} />}
+              placeholder="F3 — Tìm mã / tên hàng..."
+              style={{ width: 230, borderRadius: 8 }}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          }
+        >
+          <div style={{ maxHeight: 300, overflowY: 'auto' }}>
             <Row gutter={[8, 8]}>
               {filteredProducts.map((p) => (
-                <Col key={p.id} xs={12} md={8} lg={6}>
-                  <Card size="small" hoverable onClick={() => addLine(p)}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div>
-                    <div style={{ color: '#888', fontSize: 12 }}>{p.code ?? ''} · {p.donViTinh ?? ''}</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                      <span>{fmtVnd(p.giaBan)}</span>
-                      <PlusOutlined style={{ color: '#d4a017' }} />
+                <Col key={p.id} xs={12} md={8}>
+                  <div
+                    className="pos-product-card"
+                    style={{ padding: '10px 12px' }}
+                    onClick={() => addLine(p)}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: 13, color: '#1C180E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.name}
                     </div>
-                  </Card>
+                    <div style={{ color: '#888', fontSize: 11 }}>
+                      <span className="code-badge">{p.code ?? '—'}</span> · {p.donViTinh ?? ''}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                      <b style={{ color: '#8A6100', fontFamily: 'Outfit' }}>{fmtVnd(p.giaBan)}</b>
+                      <PlusOutlined style={{ color: '#D4AF37' }} />
+                    </div>
+                  </div>
                 </Col>
               ))}
             </Row>
@@ -144,76 +194,252 @@ const CustomerDocPage: React.FC<Props> = ({ mode }) => {
           </div>
         </Card>
 
-        <Card size="small" title={`Dòng hàng (${lines.length})`} style={{ marginTop: 12 }} styles={{ body: { padding: 0 } }}>
+        <Card
+          className="luxury-card"
+          title={<span style={{ fontWeight: 700, color: '#1C180E' }}>Dòng Hàng Đã Chọn ({lines.length})</span>}
+          style={{ marginTop: 14 }}
+          styles={{ body: { padding: 0 } }}
+        >
           <Table
-            size="small" rowKey="matHangId" pagination={false}
+            className="luxury-table"
+            size="small"
+            rowKey="matHangId"
+            pagination={false}
             dataSource={lines}
             columns={[
-              { title: 'Mặt hàng', dataIndex: 'tenMatHang' },
-              { title: 'SL', width: 90, render: (_, l: DocLine) => (
-                <InputNumber size="small" min={0.001} value={l.soLuong}
-                  onChange={(v) => updateLine(l.matHangId, { soLuong: v ?? 1 })} />
-              ) },
-              { title: 'Đơn giá', width: 130, render: (_, l: DocLine) => (
-                <InputNumber size="small" min={0} step={1000} style={{ width: '100%' }} value={l.donGia}
-                  onChange={(v) => updateLine(l.matHangId, { donGia: v ?? 0 })} />
-              ) },
-              { title: 'Giảm %', width: 90, render: (_, l: DocLine) => (
-                <InputNumber size="small" min={0} max={100} value={l.tileGiamGia}
-                  onChange={(v) => updateLine(l.matHangId, { tileGiamGia: v ?? 0 })} />
-              ) },
-              { title: 'Thành tiền', width: 130, align: 'right',
-                render: (_, l: DocLine) => <b>{fmtVnd(l.soLuong * l.donGia * (1 - l.tileGiamGia / 100))}</b> },
-              { title: '', key: 'del', width: 40,
-                render: (_, l: DocLine) => <Button type="text" danger size="small" icon={<DeleteOutlined />}
-                  onClick={() => removeLine(l.matHangId)} /> },
+              { title: 'Tên mặt hàng', dataIndex: 'tenMatHang', render: (v) => <b>{v}</b> },
+              {
+                title: 'Số lượng',
+                width: 90,
+                align: 'center',
+                render: (_, l: DocLine) => (
+                  <InputNumber
+                    size="small"
+                    min={1}
+                    precision={0}
+                    value={l.soLuong}
+                    style={{ width: 60, fontWeight: 700 }}
+                    onChange={(v) => updateLine(l.matHangId, { soLuong: v ?? 1 })}
+                  />
+                ),
+              },
+              {
+                title: 'Đơn giá',
+                width: 120,
+                align: 'right',
+                render: (_, l: DocLine) => (
+                  <InputNumber
+                    size="small"
+                    min={0}
+                    step={1000}
+                    style={{ width: '100%', fontFamily: 'Outfit' }}
+                    value={l.donGia}
+                    onChange={(v) => updateLine(l.matHangId, { donGia: v ?? 0 })}
+                  />
+                ),
+              },
+              {
+                title: 'CK%',
+                width: 75,
+                align: 'right',
+                render: (_, l: DocLine) => (
+                  <InputNumber
+                    size="small"
+                    min={0}
+                    max={100}
+                    style={{ width: '100%' }}
+                    value={l.tileGiamGia}
+                    onChange={(v) => updateLine(l.matHangId, { tileGiamGia: v ?? 0 })}
+                  />
+                ),
+              },
+              {
+                title: 'Thành tiền',
+                width: 130,
+                align: 'right',
+                render: (_, l: DocLine) => (
+                  <b style={{ color: '#8A6100', fontFamily: 'Outfit' }}>
+                    {fmtVnd(l.soLuong * l.donGia * (1 - l.tileGiamGia / 100))}
+                  </b>
+                ),
+              },
+              {
+                title: '',
+                key: 'del',
+                width: 40,
+                align: 'center',
+                render: (_, l: DocLine) => (
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={() => removeLine(l.matHangId)}
+                  />
+                ),
+              },
             ]}
-            locale={{ emptyText: <Empty description="Chưa có hàng — click thẻ mặt hàng để thêm" /> }}
+            locale={{ emptyText: <Empty description="Chưa có mặt hàng nào — click thẻ phía trên để thêm" /> }}
           />
         </Card>
       </Col>
 
+      {/* CỘT PHẢI: THÔNG TIN KHÁCH & TỔNG KẾT */}
       <Col xs={24} lg={10}>
-        <Card size="small" title={title}>
-          <Space direction="vertical" style={{ width: '100%' }} size={8}>
-            <Select allowClear showSearch optionFilterProp="label" placeholder="Khách hàng"
-              style={{ width: '100%' }} value={khachHangId ?? undefined}
-              onChange={(v) => pickCustomer(v ?? null)}
-              options={customers.map((c) => ({ value: c.id, label: `${c.maKhach ?? ''} — ${c.name}` }))} />
-            <Input allowClear placeholder="Tên khách" value={tenKhach} onChange={(e) => setTenKhach(e.target.value)} />
-            <Input allowClear placeholder="Địa chỉ" value={diaChi} onChange={(e) => setDiaChi(e.target.value)} />
-            <Row gutter={8}>
-              <Col span={12}><Input allowClear placeholder="Điện thoại" value={dienThoai} onChange={(e) => setDienThoai(e.target.value)} /></Col>
-              <Col span={12}><Input allowClear placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} /></Col>
-            </Row>
-            <Input allowClear placeholder="Ghi chú" value={ghiChu} onChange={(e) => setGhiChu(e.target.value)} />
+        <Card
+          className="luxury-card"
+          title={<span style={{ color: '#8A6100', fontWeight: 800, fontSize: 16 }}>{title}</span>}
+        >
+          <Space direction="vertical" style={{ width: '100%' }} size={10}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#7E7359', marginBottom: 4 }}>Khách hàng</div>
+              <Select
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder="Chọn khách hàng hoặc nhập mới bên dưới"
+                style={{ width: '100%' }}
+                value={khachHangId ?? undefined}
+                onChange={(v) => pickCustomer(v ?? null)}
+                options={customers.map((c) => ({ value: c.id, label: `${c.maKhach ?? ''} — ${c.name}` }))}
+              />
+            </div>
 
-            <Descriptions column={1} size="small" bordered>
-              <Descriptions.Item label="Tiền hàng"><b>{fmtVnd(tienHang)}</b></Descriptions.Item>
-              <Descriptions.Item label="Thuế">
-                <InputNumber min={0} value={tienThue} style={{ width: 140 }} onChange={(v) => setTienThue(v ?? 0)} />
+            <Row gutter={8}>
+              <Col span={12}>
+                <Input
+                  allowClear
+                  placeholder="Tên khách hàng"
+                  value={tenKhach}
+                  onChange={(e) => setTenKhach(e.target.value)}
+                />
+              </Col>
+              <Col span={12}>
+                <Input
+                  allowClear
+                  placeholder="Số điện thoại"
+                  value={dienThoai}
+                  onChange={(e) => setDienThoai(e.target.value)}
+                />
+              </Col>
+            </Row>
+
+            <Input
+              allowClear
+              placeholder="Địa chỉ giao hàng"
+              value={diaChi}
+              onChange={(e) => setDiaChi(e.target.value)}
+            />
+            <Input
+              allowClear
+              placeholder="Email liên hệ"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Input
+              allowClear
+              placeholder="Ghi chú điều khoản / thời hạn giao..."
+              value={ghiChu}
+              onChange={(e) => setGhiChu(e.target.value)}
+            />
+
+            <Descriptions column={1} size="small" bordered style={{ marginTop: 6 }}>
+              <Descriptions.Item label="Tiền hàng">
+                <b style={{ fontFamily: 'Outfit' }}>{fmtVnd(tienHang)}</b>
+              </Descriptions.Item>
+              <Descriptions.Item label="Tiền thuế">
+                <InputNumber
+                  size="small"
+                  min={0}
+                  value={tienThue}
+                  style={{ width: 140, fontFamily: 'Outfit' }}
+                  onChange={(v) => setTienThue(v ?? 0)}
+                />
               </Descriptions.Item>
               <Descriptions.Item label="Giảm giá">
-                <InputNumber min={0} max={tienHang} value={tienGiamGia} style={{ width: 140 }} onChange={(v) => setTienGiamGia(v ?? 0)} />
+                <InputNumber
+                  size="small"
+                  min={0}
+                  max={tienHang}
+                  value={tienGiamGia}
+                  style={{ width: 140, fontFamily: 'Outfit' }}
+                  onChange={(v) => setTienGiamGia(v ?? 0)}
+                />
               </Descriptions.Item>
               <Descriptions.Item label="Phí vận chuyển">
-                <InputNumber min={0} value={phiVanChuyen} style={{ width: 140 }}
-                  onChange={(v) => setPhiVanChuyen(v ?? 0)} />
+                <InputNumber
+                  size="small"
+                  min={0}
+                  value={phiVanChuyen}
+                  style={{ width: 140, fontFamily: 'Outfit' }}
+                  onChange={(v) => setPhiVanChuyen(v ?? 0)}
+                />
               </Descriptions.Item>
-              <Descriptions.Item label="Tổng cộng">
-                <span style={{ color: '#8a6100', fontSize: 18, fontWeight: 700 }}>{fmtVnd(tongCong)}</span>
+              <Descriptions.Item label="TỔNG CỘNG">
+                <span style={{
+                  color: '#8A6100',
+                  fontSize: 20,
+                  fontWeight: 800,
+                  fontFamily: 'Outfit'
+                }}>
+                  {fmtVnd(tongCong)}
+                </span>
               </Descriptions.Item>
             </Descriptions>
 
-            <Button type="primary" size="large" block loading={saving} onClick={save} disabled={lines.length === 0}>
+            <Button
+              type="primary"
+              size="large"
+              block
+              loading={saving}
+              onClick={save}
+              disabled={lines.length === 0}
+              className="gold-gradient-btn"
+              style={{ height: 46, fontSize: 15, marginTop: 4 }}
+            >
               {submitLabel}
             </Button>
-            <Button block onClick={resetForm}>Xoá form</Button>
-            {err && <Card size="small" style={{ background: '#fff2f0', borderColor: '#ffccc7' }}>{err}</Card>}
+            <Button block onClick={resetForm}>
+              Làm mới form
+            </Button>
+
+            {err && <Alert type="error" showIcon message={err} style={{ borderRadius: 8 }} />}
+
             {last && (
-              <Card size="small" style={{ background: '#f6ffed', borderColor: '#b7eb8f' }}>
-                <b>{isQuote ? 'Báo giá' : 'Đơn'} {last.soPhieu}</b> — Tổng {fmtVnd(last.tongCong)}
-              </Card>
+              <div style={{
+                marginTop: 8,
+                padding: 14,
+                background: '#ECFDF5',
+                borderRadius: 8,
+                border: '1px solid #A7F3D0',
+                color: '#065F46'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                  <CheckCircleOutlined />
+                  ĐÃ TẠO {isQuote ? 'BÁO GIÁ' : 'ĐƠN ĐẶT HÀNG'} {last.soPhieu}
+                </div>
+                <div style={{ marginTop: 4, fontSize: 13 }}>
+                  Tổng cộng: <b style={{ fontFamily: 'Outfit' }}>{fmtVnd(last.tongCong)}</b>
+                </div>
+                <Space style={{ marginTop: 10 }}>
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<EyeOutlined />}
+                    style={{ background: '#10B981', borderColor: '#10B981' }}
+                    onClick={() => isQuote ? printQuotationPdf(last.id) : printOrderPdf(last.id)}
+                  >
+                    Xem PDF
+                  </Button>
+                  <Button
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={() => isQuote ? downloadQuotationPdf(last.id) : downloadOrderPdf(last.id)}
+                  >
+                    Tải về máy
+                  </Button>
+                </Space>
+              </div>
             )}
           </Space>
         </Card>

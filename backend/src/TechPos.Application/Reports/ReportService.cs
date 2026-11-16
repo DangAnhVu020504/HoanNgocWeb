@@ -23,6 +23,9 @@ public sealed class ReportService(
     public async Task<IReadOnlyList<SalesByItemRow>> SalesByItemAsync(ReportQuery q, CancellationToken ct = default)
         => await reports.SalesByItemAsync(q, ct);
 
+    public async Task<IReadOnlyList<RevenueDetailRow>> RevenueDetailAsync(ReportQuery q, CancellationToken ct = default)
+        => await reports.RevenueDetailAsync(q, ct);
+
     public async Task<IReadOnlyList<CashByDayRow>> CashByDayAsync(ReportQuery q, CancellationToken ct = default)
         => await reports.CashByDayAsync(q, ct);
 
@@ -67,6 +70,14 @@ public sealed class ReportService(
     public async Task<StockVoucherPrintDto> GetStockVoucherAsync(string donHangId, CancellationToken ct = default)
         => await reports.GetStockVoucherAsync(donHangId, ct)
            ?? throw new NotFoundException($"Không tìm thấy phiếu kho {donHangId}");
+
+    public async Task<SalesDocPrintDto> GetSalesDocAsync(string id, string docType, CancellationToken ct = default)
+        => await reports.GetSalesDocAsync(id, docType, ct)
+           ?? throw new NotFoundException($"Không tìm thấy chứng từ {id}");
+
+    public async Task<ShipmentDocPrintDto> GetShipmentDocAsync(string id, string docType, CancellationToken ct = default)
+        => await reports.GetShipmentDocAsync(id, docType, ct)
+           ?? throw new NotFoundException($"Không tìm thấy phiếu gửi hàng {id}");
 
     // ---------- Export helpers (một nguồn cho xlsx/pdf) ----------
 
@@ -249,6 +260,12 @@ public sealed class ReportService(
 
     public byte[] PayrollPdf(PayrollDto p, string? companyName = null)
         => PayrollPdfBuilder.Build(p, companyName ?? "Cửa hàng Hoàn Ngọc");
+
+    public byte[] SalesDocPdf(SalesDocPrintDto doc, string? companyName = null)
+        => SalesDocPdfBuilder.Build(doc, companyName ?? "Cửa hàng Hoàn Ngọc");
+
+    public byte[] ShipmentPdf(ShipmentDocPrintDto doc, string? companyName = null)
+        => SalesDocPdfBuilder.BuildShipment(doc, companyName ?? "Cửa hàng Hoàn Ngọc");
 
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     public byte[] ProductBarcodePng(string productId)

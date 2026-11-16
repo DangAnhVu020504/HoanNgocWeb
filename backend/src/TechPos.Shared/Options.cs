@@ -20,6 +20,13 @@ public sealed class JwtOptions
     public int RefreshTokenDays { get; set; } = 7;
 }
 
+public sealed class MediaOptions
+{
+    public const string Section = "Media";
+    /// <summary>Thư mục gốc chứa file media-store. Rỗng = &lt;API base&gt;/media-store hoặc env TECHPOS_MEDIA_ROOT.</summary>
+    public string RootPath { get; set; } = string.Empty;
+}
+
 public sealed class FeatureFlagOptions
 {
     public const string Section = "FeatureFlags";
@@ -31,6 +38,53 @@ public sealed class FeatureFlagOptions
     public bool EnableProduction { get; set; } = false;
     public bool EnableAdvancedReport { get; set; } = false;
     public bool EnableCatalogWrite { get; set; } = false; // Phase 4 CRUD danh mục (mặc định OFF)
+}
+
+/// <summary>
+/// Tích hợp đối tác ngoài (COD carrier / MoMo). Credentials KHÔNG commit —
+/// nạp qua env: Integrations__MoMo__SecretKey, Integrations__Cod__ApiKey...
+/// </summary>
+public sealed class IntegrationOptions
+{
+    public const string Section = "Integrations";
+    public CodIntegrationOptions Cod { get; set; } = new();
+    public MoMoOptions MoMo { get; set; } = new();
+}
+
+public sealed class CodIntegrationOptions
+{
+    public bool Enabled { get; set; } = false;
+    public string Provider { get; set; } = string.Empty;
+    public string BaseUrl { get; set; } = string.Empty;
+    public string ApiKey { get; set; } = string.Empty;
+    public string ApiSecret { get; set; } = string.Empty;
+    public string ShopCode { get; set; } = string.Empty;
+
+    public bool IsConfigured =>
+        Enabled
+        && !string.IsNullOrWhiteSpace(Provider)
+        && !string.IsNullOrWhiteSpace(BaseUrl)
+        && !string.IsNullOrWhiteSpace(ApiKey)
+        && !string.IsNullOrWhiteSpace(ApiSecret);
+}
+
+public sealed class MoMoOptions
+{
+    public bool Enabled { get; set; } = false;
+    public string PartnerCode { get; set; } = string.Empty;
+    public string AccessKey { get; set; } = string.Empty;
+    public string SecretKey { get; set; } = string.Empty;
+    public string Endpoint { get; set; } = "https://test-payment.momo.vn/v2/gateway/api/create";
+    public string RedirectUrl { get; set; } = string.Empty;
+    public string IpnUrl { get; set; } = string.Empty;
+    public string RequestType { get; set; } = "captureWallet";
+
+    public bool IsConfigured =>
+        Enabled
+        && !string.IsNullOrWhiteSpace(PartnerCode)
+        && !string.IsNullOrWhiteSpace(AccessKey)
+        && !string.IsNullOrWhiteSpace(SecretKey)
+        && !string.IsNullOrWhiteSpace(Endpoint);
 }
 
 public static class SyncTables

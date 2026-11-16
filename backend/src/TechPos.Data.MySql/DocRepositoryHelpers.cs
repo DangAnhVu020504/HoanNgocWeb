@@ -78,14 +78,24 @@ public static class DocRepositoryHelpers
         return rows.ToDictionary(r => r.MatHangId, r => r.Ton);
     }
 
-    /// <summary>Kiểm tra đủ tồn cho mỗi dòng xuất — thiếu thì ném ValidationException (400).</summary>
-    public static void EnsureStock(IReadOnlyDictionary<string, decimal> stocks, string matHangId, decimal soLuong)
+    /// <summary>
+    /// Kiểm tra đủ tồn cho xuất hàng — TỔNG HỢP SL theo mặt hàng rồi mới so với tồn
+    /// (chống xuất âm qua nhiều dòng trùng mặt hàng). Thiếu ⇒ ValidationException (400).
+    /// Tồn kho không bao giờ được âm bất kể CHOPHEPAMKHO — quy tắc nghiệp vụ thống nhất.
+    /// </summary>
+    public static void EnsureStockTotals(
+        IReadOnlyDictionary<string, decimal> stocks,
+        IEnumerable<(string MatHangId, decimal SoLuong)> lines)
     {
-        stocks.TryGetValue(matHangId, out var ton);
-        if (ton < soLuong)
-            throw new ValidationException("Không đủ tồn kho để xuất", [
-                new ApiError(matHangId, "TON_KHONG_DU",
-                    $"Tồn hiện tại {ton:0.###} < số lượng xuất {soLuong:0.###}")
-            ]);
+        foreach (var g in lines.GroupBy(l => l.MatHangId))
+        {
+            stocks.TryGetValue(g.Key, out var ton);
+            var can = g.Sum(l => l.SoLuong);
+            if (ton < can)
+                throw new ValidationException("Không đủ tồn kho để xuất", [
+                    new ApiError(g.Key, "TON_KHONG_DU",
+                        $"Tồn hiện tại {ton:0.##} < tổng số lượng xuất {can:0.##}")
+                ]);
+        }
     }
 }

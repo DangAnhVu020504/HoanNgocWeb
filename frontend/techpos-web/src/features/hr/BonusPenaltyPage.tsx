@@ -58,15 +58,15 @@ const BonusPenaltyPage: React.FC = () => {
   };
 
   return (
-    <Card size="small" title="Thưởng phạt nhân viên" extra={
+    <Card size="small" className="luxury-card" title={<span className="card-title-gold">Thưởng phạt nhân viên</span>} extra={
       <Space wrap>
         <Select allowClear showSearch optionFilterProp="label" placeholder="Nhân viên" style={{ width: 200 }}
           value={nhanVienId} onChange={(v) => { setNhanVienId(v ?? undefined); void load(1, v ?? undefined); }}
           options={employees.map((e) => ({ value: e.id, label: e.name }))} />
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>Thêm thưởng/phạt</Button>
+        <Button type="primary" className="gold-gradient-btn" icon={<PlusOutlined />} onClick={() => setOpen(true)}>Thêm thưởng/phạt</Button>
       </Space>
     }>
-      <Table size="small" rowKey="id" loading={loading} dataSource={rows}
+      <Table className="luxury-table" size="middle" rowKey="id" loading={loading} dataSource={rows}
         pagination={{ current: page, pageSize: 50, total, showSizeChanger: false,
           onChange: (p) => { setPage(p); void load(p, nhanVienId); } }}
         columns={[
@@ -76,16 +76,16 @@ const BonusPenaltyPage: React.FC = () => {
           { title: 'Nhân viên', dataIndex: 'tenNhanVien', width: 160 },
           { title: 'Lý do', dataIndex: 'lyDo', width: 150 },
           { title: 'Thưởng', dataIndex: 'thuong', width: 130, align: 'right',
-            render: (v: number) => v > 0 ? <b style={{ color: '#389e0d' }}>{fmtVnd(v)}</b> : null },
+            render: (v: number) => v > 0 ? <b className="money money-pos">{fmtVnd(v)}</b> : null },
           { title: 'Phạt', dataIndex: 'phat', width: 130, align: 'right',
-            render: (v: number) => v > 0 ? <b style={{ color: '#cf1322' }}>{fmtVnd(v)}</b> : null },
+            render: (v: number) => v > 0 ? <b className="money money-neg">{fmtVnd(v)}</b> : null },
           { title: 'Ghi chú', dataIndex: 'note', ellipsis: true },
         ]}
         summary={() => rows.length > 0 ? (
-          <Table.Summary.Row>
-            <Table.Summary.Cell index={0} colSpan={4}><b>TỔNG</b></Table.Summary.Cell>
-            <Table.Summary.Cell index={1} align="right"><b style={{ color: '#389e0d' }}>{fmtVnd(rows.reduce((s, r) => s + r.thuong, 0))}</b></Table.Summary.Cell>
-            <Table.Summary.Cell index={2} align="right"><b style={{ color: '#cf1322' }}>{fmtVnd(rows.reduce((s, r) => s + r.phat, 0))}</b></Table.Summary.Cell>
+          <Table.Summary.Row className="luxury-summary-row">
+            <Table.Summary.Cell index={0} colSpan={4}><b style={{ color: '#8A6100' }}>TỔNG</b></Table.Summary.Cell>
+            <Table.Summary.Cell index={1} align="right"><b className="money money-pos">{fmtVnd(rows.reduce((s, r) => s + r.thuong, 0))}</b></Table.Summary.Cell>
+            <Table.Summary.Cell index={2} align="right"><b className="money money-neg">{fmtVnd(rows.reduce((s, r) => s + r.phat, 0))}</b></Table.Summary.Cell>
             <Table.Summary.Cell index={3} />
           </Table.Summary.Row>
         ) : null}

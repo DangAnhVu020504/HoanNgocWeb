@@ -58,21 +58,21 @@ const IntroLettersPage: React.FC = () => {
   const openDetail = (r: IntroLetter) => setDetail(r);
 
   return (
-    <Card size="small" title="Giấy giới thiệu" extra={
+    <Card size="small" className="luxury-card" title={<span className="card-title-gold">Giấy giới thiệu</span>} extra={
       <Space>
         <Input.Search allowClear placeholder="Tìm số phiếu / họ tên / nơi đến..." style={{ width: 260 }}
           onSearch={(v) => { setSearch(v); setPage(1); void load(1, v); }} />
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setOpen(true); }}>
+        <Button type="primary" className="gold-gradient-btn" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setOpen(true); }}>
           Tạo giấy giới thiệu
         </Button>
       </Space>
     }>
-      <Table size="small" rowKey="id" loading={loading} dataSource={rows}
+      <Table className="luxury-table" size="middle" rowKey="id" loading={loading} dataSource={rows}
         pagination={{ current: page, pageSize: 20, total, showSizeChanger: false,
           onChange: (p) => { setPage(p); void load(p, search); } }}
         columns={[
           { title: 'Số phiếu', dataIndex: 'soPhieu', width: 130,
-            render: (v: string, r: IntroLetter) => <Button type="link" size="small" style={{ padding: 0 }} onClick={() => openDetail(r)}>{v}</Button> },
+            render: (v: string, r: IntroLetter) => <Button type="link" size="small" style={{ padding: 0 }} onClick={() => openDetail(r)}><span className="code-badge">{v}</span></Button> },
           { title: 'Ngày', dataIndex: 'ngay', width: 110,
             render: (v: string) => v ? dayjs(v).format('DD/MM/YYYY') : '' },
           { title: 'Ông/bà', dataIndex: 'ongBa', width: 200 },

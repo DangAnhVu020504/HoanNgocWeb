@@ -53,13 +53,13 @@ const NotificationsPage: React.FC = () => {
   };
 
   return (
-    <Card size="small" title={
+    <Card size="small" className="luxury-card" title={
       <Space>
-        <BellOutlined /> Trung tâm thông báo
+        <BellOutlined style={{ color: '#D4AF37' }} /> <span className="card-title-gold">Trung tâm thông báo</span>
         <Segmented size="small" value={group} onChange={(v) => { setPage(1); setGroup(v as string); }}
           options={['ALL', 'SALES', 'INVENTORY', 'DEBT', 'COD', 'SYSTEM', 'EMAIL']} />
       </Space>
-    } extra={<Button size="small" icon={<CheckOutlined />} onClick={() => void markAll()}>Đọc tất cả</Button>}>
+    } extra={<Button size="small" onClick={() => void markAll()} icon={<CheckOutlined />}>Đọc tất cả</Button>}>
       <List
         loading={loading}
         dataSource={rows}
@@ -68,17 +68,25 @@ const NotificationsPage: React.FC = () => {
           onChange: (p) => setPage(p) }}
         renderItem={(n) => (
           <List.Item
-            style={{ cursor: 'pointer', background: n.isRead ? undefined : '#fffbe6', borderRadius: 6, paddingInline: 8 }}
+            style={{
+              cursor: 'pointer',
+              background: n.isRead ? undefined : '#FFF9E6',
+              borderLeft: n.isRead ? '3px solid transparent' : '3px solid #D4AF37',
+              borderRadius: 8,
+              paddingInline: 12,
+              marginBottom: 4,
+              transition: 'background 0.2s ease'
+            }}
             onClick={() => void markRead(n)}
             actions={n.isRead ? undefined : [<Badge key="new" status="processing" text="mới" />]}
           >
             <List.Item.Meta
               avatar={<Badge color={GROUP_COLORS[n.group] ?? '#434343'} text={n.group} />}
-              title={n.title}
+              title={<b style={{ color: '#1C180E' }}>{n.title}</b>}
               description={
                 <>
-                  {n.description && <div>{n.description}</div>}
-                  <div style={{ color: '#999', fontSize: 12 }}>{dayjs(n.createdAt).format('DD/MM/YYYY HH:mm')}</div>
+                  {n.description && <div style={{ color: '#403825' }}>{n.description}</div>}
+                  <div style={{ color: '#7E7359', fontSize: 12 }}>{dayjs(n.createdAt).format('DD/MM/YYYY HH:mm')}</div>
                 </>
               }
             />

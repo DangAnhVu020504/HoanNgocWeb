@@ -8,6 +8,7 @@ export interface Employee {
   name: string;
   diaChi: string | null;
   dienThoai: string | null;
+  email: string | null;
   cachTinhLuong: number;      // 0 = theo ca, 1 = theo tháng
   luongCa: number;
   luongThang: number;
@@ -34,6 +35,7 @@ export interface EmployeePayload {
   name: string;
   diaChi: string | null;
   dienThoai: string | null;
+  email: string | null;
   cachTinhLuong: number;
   luongCa: number;
   luongThang: number;

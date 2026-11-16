@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TechPos.Api.Middleware;
+using TechPos.Application.Admin;
 using TechPos.Application.Hr;
+using TechPos.Application.Notifications;
 using TechPos.Data.MySql;
 using TechPos.Shared;
 
@@ -134,7 +136,8 @@ public sealed class BonusPenaltiesController(HrService hr) : ControllerBase
 [ApiController]
 [Route("api/payroll")]
 [Authorize]
-public sealed class PayrollController(HrService hr, TechPos.Application.Reports.ReportService reports) : ControllerBase
+public sealed class PayrollController(HrService hr, TechPos.Application.Reports.ReportService reports,
+    SettingsService settings, EmailService emails) : ControllerBase
 {
     [HttpGet]
     [RequirePermission("HR.PAYROLL.VIEW")]
@@ -156,7 +159,8 @@ public sealed class PayrollController(HrService hr, TechPos.Application.Reports.
     public async Task<IActionResult> PayrollPdf(string id, CancellationToken ct)
     {
         var p = await hr.GetPayrollAsync(id, ct);
-        return File(reports.PayrollPdf(p), "application/pdf", $"bang-luong-{p.Thang:00}{p.Nam}.pdf");
+        var company = await settings.GetCompanyNameAsync(ct);
+        return File(reports.PayrollPdf(p, company), "application/pdf", $"bang-luong-{p.Thang:00}{p.Nam}.pdf");
     }
 
     /// <summary>Tạo bảng lương tháng (tổng hợp chấm công + thưởng phạt + tạm ứng + phụ cấp).</summary>
@@ -166,6 +170,45 @@ public sealed class PayrollController(HrService hr, TechPos.Application.Reports.
     {
         var userId = this.GetUserId();
         var result = await hr.CreatePayrollAsync(req, userId, ct);
+        try
+        {
+            var period = $"{result.Thang:00}/{result.Nam}";
+            var emailsByEmployee = await hr.GetEmployeeEmailsAsync(
+                result.Lines.Select(l => l.NhanVienId).Distinct().ToList(), ct);
+            var sent = 0;
+            foreach (var line in result.Lines)
+            {
+                if (!emailsByEmployee.TryGetValue(line.NhanVienId, out var email)
+                    || string.IsNullOrWhiteSpace(email)) continue;
+                await emails.EnqueueFromEventAsync("SALARY_COMPLETED", [(email, line.TenNhanVien ?? "Nhân viên")],
+                    new Dictionary<string, string?>
+                    {
+                        ["EMPLOYEE_NAME"] = line.TenNhanVien,
+                        ["PERIOD"] = period,
+                        ["TOTAL_AMOUNT"] = line.ThucNhan.ToString("N0") + " đ"
+                    }, "TBANGLUONG", result.Id, ct);
+                sent++;
+            }
+
+            // Không nhân viên nào có email ⇒ gửi bảng tổng hợp cho quản trị (FROM_EMAIL).
+            if (sent == 0)
+            {
+                var mailSettings = await emails.GetSettingsAsync(ct);
+                var from = mailSettings.GetValueOrDefault("FROM_EMAIL");
+                if (!string.IsNullOrWhiteSpace(from))
+                {
+                    await emails.EnqueueFromEventAsync("SALARY_COMPLETED", [(from!, "Quản trị")],
+                        new Dictionary<string, string?>
+                        {
+                            ["PERIOD"] = period,
+                            ["TOTAL_AMOUNT"] = result.TongThucNhan.ToString("N0") + " đ"
+                        }, "TBANGLUONG", result.Id, ct);
+                }
+            }
+        }
+        catch (Exception)
+        {
+        }
         return Ok(ApiResult<PayrollDto>.Ok(result, HttpContext.TraceIdentifier));
     }
 

@@ -141,7 +141,8 @@ const SyncAdminPage: React.FC = () => {
       {err && <Alert type="error" showIcon message={err} closable />}
 
       <Card
-        title={<Space><SyncOutlined /> Sync Admin</Space>}
+        className="luxury-card"
+        title={<Space><SyncOutlined style={{ color: '#D4AF37' }} /> <span className="card-title-gold">Sync Admin</span></Space>}
         extra={
           <Space>
             <Badge
@@ -153,19 +154,19 @@ const SyncAdminPage: React.FC = () => {
         }
       >
         <Row gutter={[12, 12]}>
-          <Col xs={12} md={4}><Statistic title="Cursor" value={data?.cursors.length ?? 0} /></Col>
-          <Col xs={12} md={4}><Statistic title="Logs" value={data?.recentLogs.length ?? 0} /></Col>
-          <Col xs={12} md={4}><Statistic title="Row errors chờ" value={data?.rowErrors?.Pending ?? 0}
-            valueStyle={{ color: (data?.rowErrors?.Pending ?? 0) > 0 ? '#cf1322' : undefined }} /></Col>
-          <Col xs={12} md={4}><Statistic title="Dead-letter" value={data?.rowErrors?.DeadLetter ?? 0} /></Col>
-          <Col xs={12} md={4}><Statistic title="Commands" value={data?.commands.length ?? 0} /></Col>
-          <Col xs={12} md={4}><Statistic title="Last run" value={fmtDt(heartbeat?.LastRunAt)} /></Col>
+          <Col xs={12} md={4}><div className="luxury-kpi-card"><Statistic title="Cursor" value={data?.cursors.length ?? 0} /></div></Col>
+          <Col xs={12} md={4}><div className="luxury-kpi-card"><Statistic title="Logs" value={data?.recentLogs.length ?? 0} /></div></Col>
+          <Col xs={12} md={4}><div className="luxury-kpi-card"><Statistic title="Row errors chờ" value={data?.rowErrors?.Pending ?? 0}
+            valueStyle={{ color: (data?.rowErrors?.Pending ?? 0) > 0 ? '#E11D48' : undefined }} /></div></Col>
+          <Col xs={12} md={4}><div className="luxury-kpi-card"><Statistic title="Dead-letter" value={data?.rowErrors?.DeadLetter ?? 0} /></div></Col>
+          <Col xs={12} md={4}><div className="luxury-kpi-card"><Statistic title="Commands" value={data?.commands.length ?? 0} /></div></Col>
+          <Col xs={12} md={4}><div className="luxury-kpi-card"><Statistic title="Last run" value={fmtDt(heartbeat?.LastRunAt)} /></div></Col>
         </Row>
 
-        <Card type="inner" title="Lệnh nhanh" size="small" style={{ marginTop: 12 }}>
+        <Card type="inner" title={<span className="card-title-gold">Lệnh nhanh</span>} size="small" style={{ marginTop: 12 }}>
           <Space wrap>
             <Button
-              type="primary" icon={<CheckCircleTwoTone twoToneColor="#52c41a" />}
+              type="primary" className="gold-gradient-btn" icon={<CheckCircleTwoTone twoToneColor="#D4AF37" />}
               loading={actionBusy === 'RECONCILE'}
               onClick={() => runCmd('RECONCILE_ALL', () => triggerReconcile())}
             >
@@ -190,7 +191,7 @@ const SyncAdminPage: React.FC = () => {
         </Card>
       </Card>
 
-      <Card size="small" title="Heartbeat chi tiết">
+      <Card size="small" className="luxury-card" title={<span className="card-title-gold">Heartbeat chi tiết</span>}>
         {heartbeat ? (
           <Descriptions size="small" column={2} bordered>
             <Descriptions.Item label="State">{heartbeat.State}</Descriptions.Item>
@@ -201,13 +202,14 @@ const SyncAdminPage: React.FC = () => {
       </Card>
 
       <Tabs
+        className="luxury-tabs"
         defaultActiveKey="cursors"
         items={[
           {
             key: 'cursors', label: `Cursor (${data?.cursors.length ?? 0})`,
             children: (
               <Table
-                size="small" rowKey="TableName" loading={loading} pagination={{ pageSize: 15 }}
+                className="luxury-table" size="middle" rowKey="TableName" loading={loading} pagination={{ pageSize: 15 }}
                 dataSource={data?.cursors ?? []} columns={cursorColumns}
               />
             )
@@ -216,7 +218,7 @@ const SyncAdminPage: React.FC = () => {
             key: 'logs', label: `Logs gần đây (${data?.recentLogs.length ?? 0})`,
             children: (
               <Table
-                size="small" rowKey={(r: SyncLog) => `${r.StartedAt}-${r.TableName}-${r.RunType}`}
+                className="luxury-table" size="middle" rowKey={(r: SyncLog) => `${r.StartedAt}-${r.TableName}-${r.RunType}`}
                 loading={loading} pagination={{ pageSize: 15 }}
                 dataSource={data?.recentLogs ?? []} columns={logColumns}
               />
@@ -226,7 +228,7 @@ const SyncAdminPage: React.FC = () => {
             key: 'cmds', label: `Lệnh (${data?.commands.length ?? 0})`,
             children: (
               <Table
-                size="small" rowKey="Id" loading={loading} pagination={{ pageSize: 10 }}
+                className="luxury-table" size="middle" rowKey="Id" loading={loading} pagination={{ pageSize: 10 }}
                 dataSource={data?.commands ?? []} columns={commandColumns}
               />
             )
@@ -240,7 +242,7 @@ const SyncAdminPage: React.FC = () => {
                   <Button size="small" type={showDead ? 'primary' : 'default'} onClick={() => setShowDead(true)}>Dead-letter</Button>
                 </Space>
                 <Table
-                  size="small" rowKey="ID" loading={loading} pagination={{ pageSize: 10 }}
+                  className="luxury-table" size="middle" rowKey="ID" loading={loading} pagination={{ pageSize: 10 }}
                   dataSource={rowErrors} columns={rowErrorColumns}
                 />
               </Space>
@@ -277,7 +279,7 @@ const TablesPolicyTab: React.FC = () => {
   };
 
   return (
-    <Table size="small" rowKey="TableName" loading={loading} dataSource={rows}
+    <Table className="luxury-table" size="middle" rowKey="TableName" loading={loading} dataSource={rows}
       pagination={{ pageSize: 20 }}
       columns={[
         { title: 'Nhóm', dataIndex: 'GroupName', width: 110,

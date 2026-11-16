@@ -6,7 +6,7 @@ import {
   getPayrolls, getPayroll, createPayroll, createSalaryAdvance, getEmployees,
   type Payroll, type PayrollSummary, type Employee,
 } from '../../api/hr';
-import { printPayrollPdf } from '../../api/reports';
+import { downloadPayrollPdf, printPayrollPdf } from '../../api/reports';
 
 const fmtVnd = (n: number) => n.toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' ₫';
 
@@ -46,14 +46,14 @@ const PayrollList: React.FC<{ onOpenDetail: (id: string) => void }> = ({ onOpenD
   };
 
   return (
-    <Card size="small" title="Bảng lương theo tháng" extra={
-      <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>Tính lương tháng</Button>
+    <Card size="small" className="luxury-card" title={<span className="card-title-gold">Bảng lương theo tháng</span>} extra={
+      <Button type="primary" className="gold-gradient-btn" icon={<PlusOutlined />} onClick={() => setOpen(true)}>Tính lương tháng</Button>
     }>
-      <Table size="small" rowKey="id" loading={loading} dataSource={rows}
+      <Table className="luxury-table" size="middle" rowKey="id" loading={loading} dataSource={rows}
         pagination={{ current: page, pageSize: 20, total, showSizeChanger: false, onChange: (p) => { setPage(p); void load(p); } }}
         columns={[
           { title: 'Số phiếu', dataIndex: 'soPhieu', width: 130,
-            render: (v: string, r: PayrollSummary) => <Button type="link" size="small" style={{ padding: 0 }} onClick={() => onOpenDetail(r.id)}>{v}</Button> },
+            render: (v: string, r: PayrollSummary) => <Button type="link" size="small" style={{ padding: 0 }} onClick={() => onOpenDetail(r.id)}><span className="code-badge">{v}</span></Button> },
           { title: 'Kỳ lương', width: 130,
             render: (_: unknown, r: PayrollSummary) => `${String(r.thang).padStart(2, '0')}/${r.nam}` },
           { title: 'Ngày tạo', dataIndex: 'ngay', width: 120,
@@ -111,7 +111,7 @@ const AdvanceForm: React.FC = () => {
   };
 
   return (
-    <Card size="small" title="Tạm ứng lương">
+    <Card size="small" className="luxury-card" title={<span className="card-title-gold">Tạm ứng lương</span>}>
       <Space direction="vertical" style={{ width: '100%' }} size={10}>
         <Select showSearch optionFilterProp="label" placeholder="Nhân viên tạm ứng" style={{ width: '100%' }}
           value={nhanVienId ?? undefined} onChange={(v) => setNhanVienId(v)}
@@ -120,7 +120,7 @@ const AdvanceForm: React.FC = () => {
           value={tien || undefined} onChange={(v) => setTien(v ?? 0)}
           formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(v) => Number((v ?? '').replace(/\./g, ''))} />
         <Input allowClear placeholder="Ghi chú (lý do tạm ứng...)" value={ghiChu} onChange={(e) => setGhiChu(e.target.value)} />
-        <Button type="primary" loading={saving} onClick={save}>Tạo phiếu chi tạm ứng</Button>
+        <Button type="primary" className="gold-gradient-btn" loading={saving} onClick={save}>Tạo phiếu chi tạm ứng</Button>
         {last && <Descriptions column={1} size="small" bordered><Descriptions.Item label="Kết quả">{last}</Descriptions.Item></Descriptions>}
         <div style={{ color: '#888' }}>Ghi TTHUCHI (LOAI=1 chi, LATAMUNG=1) — tự trừ vào lương tháng của nhân viên.</div>
       </Space>
@@ -143,7 +143,7 @@ const PayrollPage: React.FC = () => {
 
   return (
     <>
-      <Tabs items={[
+      <Tabs className="luxury-tabs" items={[
         { key: 'list', label: 'Bảng lương', children: <PayrollList onOpenDetail={(id) => void openDetail(id)} /> },
         { key: 'advance', label: 'Tạm ứng lương', children: <AdvanceForm /> },
       ]} />
@@ -151,10 +151,15 @@ const PayrollPage: React.FC = () => {
         open={detailOpen} onCancel={() => setDetailOpen(false)} footer={null} width={980} destroyOnClose>
         {detail && (
           <>
-          <Button size="small" style={{ marginBottom: 8 }} onClick={() => printPayrollPdf(detail.id)}>
-            In bảng lương (PDF)
-          </Button>
-          <Table size="small" rowKey="id" dataSource={detail.lines} pagination={false}
+          <Space style={{ marginBottom: 12 }}>
+            <Button size="small" type="primary" className="gold-gradient-btn" onClick={() => printPayrollPdf(detail.id)}>
+              In bảng lương (PDF)
+            </Button>
+            <Button size="small" onClick={() => downloadPayrollPdf(detail.id)}>
+              Tải về máy
+            </Button>
+          </Space>
+          <Table className="luxury-table" size="middle" rowKey="id" dataSource={detail.lines} pagination={false}
             columns={[
               { title: 'Nhân viên', dataIndex: 'tenNhanVien' },
               { title: 'Số công', dataIndex: 'soCong', width: 80, align: 'right' },
@@ -170,9 +175,9 @@ const PayrollPage: React.FC = () => {
                 render: (v: number) => <b>{fmtVnd(v)}</b> },
             ]}
             summary={() => (
-              <Table.Summary.Row>
-                <Table.Summary.Cell index={0} colSpan={8}><b>TỔNG THỰC NHẬN</b></Table.Summary.Cell>
-                <Table.Summary.Cell index={1} align="right"><b style={{ color: '#cf1322' }}>{fmtVnd(detail.tongThucNhan)}</b></Table.Summary.Cell>
+              <Table.Summary.Row className="luxury-summary-row">
+                <Table.Summary.Cell index={0} colSpan={8}><b style={{ color: '#8A6100' }}>TỔNG THỰC NHẬN</b></Table.Summary.Cell>
+                <Table.Summary.Cell index={1} align="right"><b className="money money-neg">{fmtVnd(detail.tongThucNhan)}</b></Table.Summary.Cell>
               </Table.Summary.Row>
             )}
           />

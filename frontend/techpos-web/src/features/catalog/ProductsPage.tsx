@@ -1,9 +1,12 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Alert, App, Badge, Button, Card, Checkbox, Descriptions, Drawer, Empty, Form, Input,
-  InputNumber, Modal, Select, Space, Spin, Table, Tag, message
+  Alert, App, Badge, Button, Card, Checkbox, Col, Descriptions, Drawer, Empty, Form, Input,
+  InputNumber, Modal, Row, Select, Space, Spin, Table, Tag, message
 } from 'antd';
-import { EditOutlined, PlusOutlined, ReloadOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+import {
+  BarcodeOutlined, EditOutlined, PlusOutlined, ReloadOutlined,
+  SearchOutlined, UploadOutlined
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
   createProduct, deleteProduct, getProduct, getProductGroups, getProductStock, getProducts,
@@ -97,16 +100,28 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  const openCreate = () => { setEditing(null); form.resetFields(); setFormOpen(true); };
+  const openCreate = () => {
+    setEditing(null);
+    form.resetFields();
+    setFormOpen(true);
+  };
 
   const openEdit = (p: Product) => {
     setEditing(p);
     form.setFieldsValue({
-      name: p.name, note: p.note, giaBan: p.giaBan, giaNhap: p.giaNhap,
-      tonToiThieu: p.tonToiThieu, tonToiDa: p.tonToiDa,
+      name: p.name,
+      note: p.note,
+      giaBan: p.giaBan,
+      giaNhap: p.giaNhap,
+      tonToiThieu: p.tonToiThieu,
+      tonToiDa: p.tonToiDa,
       nhomMatHangId: groups.find((g) => g.name === p.nhomMatHang)?.id,
-      xuatXu: p.xuatXu, mauSac: p.mauSac, chatLieu: p.chatLieu,
-      coHanSuDung: p.coHanSuDung, coSeri: p.coSeri, status: p.status
+      xuatXu: p.xuatXu,
+      mauSac: p.mauSac,
+      chatLieu: p.chatLieu,
+      coHanSuDung: p.coHanSuDung,
+      coSeri: p.coSeri,
+      status: p.status,
     });
     setFormOpen(true);
   };
@@ -136,7 +151,9 @@ const ProductsPage: React.FC = () => {
     modal.confirm({
       title: `Xóa mặt hàng "${p.name}"?`,
       content: 'Mặt hàng sẽ bị ẩn khỏi danh sách (soft delete). Dữ liệu bán hàng không bị ảnh hưởng.',
-      okType: 'danger', okText: 'Xóa', cancelText: 'Bỏ qua',
+      okType: 'danger',
+      okText: 'Xóa',
+      cancelText: 'Bỏ qua',
       onOk: async () => {
         try {
           await deleteProduct(p.id);
@@ -145,67 +162,124 @@ const ProductsPage: React.FC = () => {
         } catch (e: unknown) {
           message.error(apiErrMsg(e, 'Lỗi xóa mặt hàng'));
         }
-      }
+      },
     });
   };
 
   const columns: ColumnsType<Product> = useMemo(() => [
-    { title: 'Mã', dataIndex: 'code', width: 130, sorter: true,
-      render: (v: string | null) => <b>{v ?? '—'}</b> },
-    { title: 'Tên mặt hàng', dataIndex: 'name', sorter: true },
-    { title: 'Nhóm', dataIndex: 'nhomMatHang', width: 120, render: (v) => v ? <Tag>{v}</Tag> : '—' },
-    { title: 'ĐVT', dataIndex: 'donViTinh', width: 80 },
-    { title: 'Giá bán', dataIndex: 'giaBan', width: 120, align: 'right', sorter: true, render: fmtVnd },
-    { title: 'Giá nhập', dataIndex: 'giaNhap', width: 120, align: 'right', render: fmtVnd },
-    { title: 'Giá vốn', dataIndex: 'giaVon', width: 120, align: 'right', render: fmtVnd },
-    { title: 'Trạng thái', dataIndex: 'status', width: 110, align: 'center',
+    {
+      title: 'Mã hàng',
+      dataIndex: 'code',
+      width: 130,
+      sorter: true,
+      render: (v: string | null) => <span className="code-badge">{v ?? '—'}</span>,
+    },
+    {
+      title: 'Tên mặt hàng',
+      dataIndex: 'name',
+      sorter: true,
+      render: (v: string) => <b style={{ color: '#1C180E' }}>{v}</b>,
+    },
+    {
+      title: 'Nhóm',
+      dataIndex: 'nhomMatHang',
+      width: 140,
+      render: (v) => v ? <Tag color="gold">{v}</Tag> : '—',
+    },
+    { title: 'ĐVT', dataIndex: 'donViTinh', width: 75, align: 'center' },
+    {
+      title: 'Giá bán lẻ',
+      dataIndex: 'giaBan',
+      width: 130,
+      align: 'right',
+      sorter: true,
+      render: (v) => <b style={{ color: '#8A6100', fontFamily: 'Outfit' }}>{fmtVnd(v)}</b>,
+    },
+    {
+      title: 'Giá nhập',
+      dataIndex: 'giaNhap',
+      width: 120,
+      align: 'right',
+      render: (v) => <span style={{ fontFamily: 'Outfit' }}>{fmtVnd(v)}</span>,
+    },
+    {
+      title: 'Giá vốn',
+      dataIndex: 'giaVon',
+      width: 120,
+      align: 'right',
+      render: (v) => <span style={{ fontFamily: 'Outfit' }}>{fmtVnd(v)}</span>,
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      width: 120,
+      align: 'center',
       render: (v: number) => v === 30
         ? <Badge status="success" text="Hoạt động" />
-        : <Badge status="default" text={`Không dùng (${v})`} /> },
+        : <Badge status="default" text={`Không dùng (${v})`} />,
+    },
     {
-      title: '', key: 'act', width: 160, align: 'center',
+      title: 'Thao tác',
+      key: 'act',
+      width: 170,
+      align: 'center',
       render: (_, r) => (
-        <Space size={4}>
+        <Space size={6}>
           <Button size="small" onClick={() => openDetail(r.id)}>Chi tiết</Button>
           {canUpdate && <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(r)}>Sửa</Button>}
           {canDelete && <Button size="small" danger onClick={() => confirmDelete(r)}>Xóa</Button>}
         </Space>
-      )
-    }
+      ),
+    },
   ], [canUpdate, canDelete]);
 
   return (
-    <Space direction="vertical" size={12} style={{ width: '100%' }}>
-      <Card size="small">
-        <Space wrap>
+    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      {/* THANH CÔNG CỤ TÌM KIẾM & BỘ LỌC */}
+      <Card className="luxury-card">
+        <Space wrap size={12}>
           <Input
-            allowClear placeholder="Tìm mã / tên mặt hàng..." prefix={<SearchOutlined />}
-            style={{ width: 280 }} value={search}
+            allowClear
+            placeholder="F3 — Tìm mã / tên mặt hàng..."
+            prefix={<SearchOutlined style={{ color: '#D4AF37' }} />}
+            style={{ width: 280, borderRadius: 8 }}
+            value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
           <Select
-            allowClear placeholder="Nhóm mặt hàng" style={{ width: 180 }}
+            allowClear
+            placeholder="Tất cả nhóm hàng"
+            style={{ width: 190 }}
             value={groupId}
             onChange={(v) => { setGroupId(v); setPage(1); }}
             options={groups.map(g => ({ value: g.id, label: g.name }))}
           />
           <Select
-            style={{ width: 150 }} value={activeOnly ? 'active' : 'all'}
+            style={{ width: 160 }}
+            value={activeOnly ? 'active' : 'all'}
             onChange={(v) => { setActiveOnly(v === 'active'); setPage(1); }}
             options={[
               { value: 'active', label: 'Chỉ hoạt động' },
-              { value: 'all', label: 'Tất cả' }
+              { value: 'all', label: 'Hiển thị tất cả' },
             ]}
           />
           <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>Tải lại</Button>
           {canCreate && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreate}
+              className="gold-gradient-btn"
+            >
               Thêm mặt hàng
             </Button>
           )}
           {canCreate && (
             <label style={{ display: 'inline-block' }}>
-              <input type="file" accept=".xlsx,.xls" style={{ display: 'none' }}
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                style={{ display: 'none' }}
                 onChange={async (e) => {
                   const f = e.target.files?.[0];
                   if (!f) return;
@@ -217,7 +291,7 @@ const ProductsPage: React.FC = () => {
                     const env = res.data as { success: boolean; data?: ImportResultDto; message?: string };
                     if (env.success && env.data) {
                       const r = env.data;
-                      void message.success(`Import: ${r.created} tạo mới, ${r.skipped} bỏ qua (trùng), ${r.errors.length} lỗi`);
+                      void message.success(`Import: ${r.created} tạo mới, ${r.skipped} bỏ qua, ${r.errors.length} lỗi`);
                       load();
                     } else {
                       void message.error(env.message ?? 'Import thất bại');
@@ -227,90 +301,144 @@ const ProductsPage: React.FC = () => {
                   } finally {
                     e.target.value = '';
                   }
-                }} />
-              <Button icon={<UploadOutlined />} onClick={(e) => {
-                (e.currentTarget.previousSibling as HTMLInputElement)?.click();
-              }}>Nhập Excel</Button>
+                }}
+              />
+              <Button
+                icon={<UploadOutlined />}
+                onClick={(e) => {
+                  (e.currentTarget.previousSibling as HTMLInputElement)?.click();
+                }}
+              >
+                Nhập Excel
+              </Button>
             </label>
           )}
         </Space>
       </Card>
 
-      {err && <Alert type="error" showIcon message={err} closable />}
+      {err && <Alert type="error" showIcon message={err} closable style={{ borderRadius: 8 }} />}
 
-      <Card size="small" title={`Danh mục mặt hàng (${total})`} styles={{ body: { padding: 0 } }}>
+      <Card
+        className="luxury-card"
+        title={
+          <span style={{ color: '#1C180E', fontWeight: 800, fontSize: 16 }}>
+            Danh Mục Mặt Hàng ({total.toLocaleString('vi-VN')} sản phẩm)
+          </span>
+        }
+        styles={{ body: { padding: 0 } }}
+      >
         <Table
-          size="middle" rowKey="id" loading={loading}
-          columns={columns} dataSource={items}
+          className="luxury-table"
+          size="middle"
+          rowKey="id"
+          loading={loading}
+          columns={columns}
+          dataSource={items}
           pagination={{
-            current: page, pageSize, total, showSizeChanger: true, showTotal: (t) => `Tổng ${t} mặt hàng`
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showTotal: (t) => `Tổng ${t.toLocaleString('vi-VN')} mặt hàng`,
           }}
           onChange={(p) => {
             setPage(p.current ?? 1);
             setPageSize(p.pageSize ?? 20);
           }}
-          onRow={(r) => ({ onDoubleClick: () => openDetail(r.id), style: { cursor: 'pointer' } })}
+          onRow={(r) => ({
+            onDoubleClick: () => openDetail(r.id),
+            style: { cursor: 'pointer' },
+          })}
         />
       </Card>
 
+      {/* DRAWER CHI TIẾT MẶT HÀNG & TỒN THEO KHO */}
       <Drawer
-        title="Chi tiết mặt hàng" width={480} open={detailOpen} onClose={() => setDetailOpen(false)}
+        title={<span style={{ color: '#8A6100', fontWeight: 800 }}>Chi Tiết Mặt Hàng</span>}
+        width={500}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
       >
         {detailLoading ? <Spin /> : detail && (
-          <>
+          <Space direction="vertical" size={14} style={{ width: '100%' }}>
             <Descriptions column={1} bordered size="small">
-              <Descriptions.Item label="Mã">{detail.code ?? '—'}</Descriptions.Item>
-              <Descriptions.Item label="Tên">{detail.name}</Descriptions.Item>
-              <Descriptions.Item label="Nhóm">{detail.nhomMatHang ?? '—'}</Descriptions.Item>
-              <Descriptions.Item label="ĐVT">{detail.donViTinh ?? '—'}</Descriptions.Item>
+              <Descriptions.Item label="Mã hàng"><span className="code-badge">{detail.code ?? '—'}</span></Descriptions.Item>
+              <Descriptions.Item label="Tên mặt hàng"><b>{detail.name}</b></Descriptions.Item>
+              <Descriptions.Item label="Nhóm hàng">{detail.nhomMatHang ?? '—'}</Descriptions.Item>
+              <Descriptions.Item label="Đơn vị tính">{detail.donViTinh ?? '—'}</Descriptions.Item>
               <Descriptions.Item label="Hãng sản xuất">{detail.hangSanXuat ?? '—'}</Descriptions.Item>
               <Descriptions.Item label="Xuất xứ">{detail.xuatXu ?? '—'}</Descriptions.Item>
               <Descriptions.Item label="Màu sắc">{detail.mauSac ?? '—'}</Descriptions.Item>
               <Descriptions.Item label="Chất liệu">{detail.chatLieu ?? '—'}</Descriptions.Item>
-              <Descriptions.Item label="Giá bán">{fmtVnd(detail.giaBan)}</Descriptions.Item>
+              <Descriptions.Item label="Giá bán lẻ"><b style={{ color: '#8A6100', fontFamily: 'Outfit' }}>{fmtVnd(detail.giaBan)}</b></Descriptions.Item>
               <Descriptions.Item label="Giá nhập">{fmtVnd(detail.giaNhap)}</Descriptions.Item>
               <Descriptions.Item label="Giá vốn">{fmtVnd(detail.giaVon)}</Descriptions.Item>
-              <Descriptions.Item label="Tồn tối thiểu">{detail.tonToiThieu}</Descriptions.Item>
-              <Descriptions.Item label="Tồn tối đa">{detail.tonToiDa}</Descriptions.Item>
-              <Descriptions.Item label="Có hạn sử dụng">{detail.coHanSuDung ? 'Có' : 'Không'}</Descriptions.Item>
-              <Descriptions.Item label="Có seri">{detail.coSeri ? 'Có' : 'Không'}</Descriptions.Item>
+              <Descriptions.Item label="Tồn định mức">{detail.tonToiThieu} ~ {detail.tonToiDa}</Descriptions.Item>
               <Descriptions.Item label="Trạng thái">
-                {detail.status === 30 ? <Tag color="green">Hoạt động</Tag> : <Tag>Không dùng ({detail.status})</Tag>}
+                {detail.status === 30 ? <Tag color="green">Hoạt động</Tag> : <Tag>Ngừng ({detail.status})</Tag>}
               </Descriptions.Item>
             </Descriptions>
 
-            <h4 style={{ marginTop: 16 }}>Tồn kho theo kho</h4>
-            {detailStock.length === 0
-              ? <Empty description="Chưa có dữ liệu tồn kho" />
-              : (
-                <Table
-                  size="small" rowKey="wareHouseId" pagination={false}
-                  dataSource={detailStock}
-                  columns={[
-                    { title: 'Kho', dataIndex: 'wareHouseName', render: (v) => v ?? '—' },
-                    { title: 'Tồn', dataIndex: 'ton', align: 'right', render: (v: number) => v.toLocaleString('vi-VN') }
-                  ]}
-                />
-              )}
-            {canUpdate && (
-              <Button style={{ marginTop: 12 }} icon={<EditOutlined />}
-                onClick={() => { setDetailOpen(false); openEdit(detail); }}>
-                Sửa mặt hàng
-              </Button>
+            <h4 style={{ margin: '14px 0 6px', color: '#8A6100', fontWeight: 700 }}>
+              Tồn Kho Tại Các Chi Nhánh
+            </h4>
+            {detailStock.length === 0 ? (
+              <Empty description="Chưa có dữ liệu tồn kho" />
+            ) : (
+              <Table
+                className="luxury-table"
+                size="small"
+                rowKey="wareHouseId"
+                pagination={false}
+                dataSource={detailStock}
+                columns={[
+                  { title: 'Tên kho hàng', dataIndex: 'wareHouseName', render: (v) => <b>{v ?? '—'}</b> },
+                  {
+                    title: 'Số lượng tồn',
+                    dataIndex: 'ton',
+                    align: 'right',
+                    render: (v: number) => (
+                      <b style={{ color: v > 0 ? '#10B981' : '#E11D48', fontFamily: 'Outfit' }}>
+                        {v.toLocaleString('vi-VN')}
+                      </b>
+                    ),
+                  },
+                ]}
+              />
             )}
-            <Button style={{ marginTop: 12, marginLeft: 8 }}
-              onClick={() => openBarcode(detail.id)}
-              disabled={!detail.code}>
-              In tem mã vạch
-            </Button>
-          </>
+
+            <Space style={{ marginTop: 12 }}>
+              {canUpdate && (
+                <Button
+                  className="gold-gradient-btn"
+                  icon={<EditOutlined />}
+                  onClick={() => { setDetailOpen(false); openEdit(detail); }}
+                >
+                  Sửa mặt hàng
+                </Button>
+              )}
+              <Button
+                icon={<BarcodeOutlined />}
+                onClick={() => openBarcode(detail.id)}
+                disabled={!detail.code}
+              >
+                In tem mã vạch
+              </Button>
+            </Space>
+          </Space>
         )}
       </Drawer>
 
+      {/* MODAL THÊM / SỬA MẶT HÀNG */}
       <Modal
-        title={editing ? `Sửa mặt hàng — ${editing.name}` : 'Thêm mặt hàng'}
-        open={formOpen} onCancel={() => setFormOpen(false)} onOk={submit}
-        confirmLoading={saving} okText="Lưu" cancelText="Bỏ qua" width={680}
+        title={<span style={{ color: '#8A6100', fontWeight: 800 }}>{editing ? `Sửa Mặt Hàng — ${editing.name}` : 'Thêm Mặt Hàng Mới'}</span>}
+        open={formOpen}
+        onCancel={() => setFormOpen(false)}
+        onOk={submit}
+        confirmLoading={saving}
+        okText="Lưu dữ liệu"
+        cancelText="Đóng"
+        width={700}
         destroyOnClose
       >
         <Form form={form} layout="vertical" initialValues={{ giaBan: 0, giaNhap: 0, tonToiThieu: 0, tonToiDa: 0 }}>
@@ -318,42 +446,50 @@ const ProductsPage: React.FC = () => {
             <Input placeholder="Tên mặt hàng" />
           </Form.Item>
           {!editing && (
-            <Space wrap>
-              <Form.Item name="code" label="Mã hàng" style={{ width: 200 }}><Input /></Form.Item>
-              <Form.Item name="maSanCo" label="Mã sản cố / barcode" style={{ width: 220 }}><Input /></Form.Item>
-            </Space>
+            <Row gutter={12}>
+              <Col span={12}>
+                <Form.Item name="code" label="Mã hàng"><Input placeholder="Tự động nếu để trống" /></Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="maSanCo" label="Mã vạch / Barcode"><Input placeholder="Quét mã vạch có sẵn" /></Form.Item>
+              </Col>
+            </Row>
           )}
           <Form.Item name="nhomMatHangId" label="Nhóm mặt hàng">
-            <Select allowClear options={groups.map((g) => ({ value: g.id, label: g.name }))} />
+            <Select allowClear placeholder="Chọn nhóm hàng" options={groups.map((g) => ({ value: g.id, label: g.name }))} />
           </Form.Item>
-          <Space wrap>
-            <Form.Item name="giaBan" label="Giá bán" style={{ width: 160 }}>
-              <InputNumber min={0} style={{ width: '100%' }} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
-            </Form.Item>
-            <Form.Item name="giaNhap" label="Giá nhập" style={{ width: 160 }}>
-              <InputNumber min={0} style={{ width: '100%' }} />
-            </Form.Item>
-          </Space>
-          <Space wrap>
-            <Form.Item name="tonToiThieu" label="Tồn tối thiểu" style={{ width: 150 }}>
-              <InputNumber min={0} style={{ width: '100%' }} />
-            </Form.Item>
-            <Form.Item name="tonToiDa" label="Tồn tối đa" style={{ width: 150 }}>
-              <InputNumber min={0} style={{ width: '100%' }} />
-            </Form.Item>
-          </Space>
-          <Space wrap>
-            <Form.Item name="xuatXu" label="Xuất xứ" style={{ width: 160 }}><Input /></Form.Item>
-            <Form.Item name="mauSac" label="Màu sắc" style={{ width: 140 }}><Input /></Form.Item>
-            <Form.Item name="chatLieu" label="Chất liệu" style={{ width: 160 }}><Input /></Form.Item>
-          </Space>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="giaBan" label="Giá bán lẻ (VNĐ)">
+                <InputNumber min={0} style={{ width: '100%' }} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="giaNhap" label="Giá nhập (VNĐ)">
+                <InputNumber min={0} style={{ width: '100%' }} formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="tonToiThieu" label="Tồn tối thiểu (báo động sắp hết)"><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="tonToiDa" label="Tồn tối đa"><InputNumber min={0} style={{ width: '100%' }} /></Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={8}><Form.Item name="xuatXu" label="Xuất xứ"><Input /></Form.Item></Col>
+            <Col span={8}><Form.Item name="mauSac" label="Màu sắc"><Input /></Form.Item></Col>
+            <Col span={8}><Form.Item name="chatLieu" label="Chất liệu"><Input /></Form.Item></Col>
+          </Row>
           <Form.Item name="note" label="Ghi chú"><Input.TextArea rows={2} /></Form.Item>
-          <Space wrap>
-            <Form.Item name="coHanSuDung" valuePropName="checked"><Checkbox>Có hạn sử dụng</Checkbox></Form.Item>
-            <Form.Item name="coSeri" valuePropName="checked"><Checkbox>Theo dõi seri</Checkbox></Form.Item>
+          <Space wrap size={16}>
+            <Form.Item name="coHanSuDung" valuePropName="checked" noStyle><Checkbox>Có hạn sử dụng</Checkbox></Form.Item>
+            <Form.Item name="coSeri" valuePropName="checked" noStyle><Checkbox>Theo dõi seri</Checkbox></Form.Item>
           </Space>
           {editing && (
-            <Form.Item name="status" label="Trạng thái" style={{ width: 200 }}>
+            <Form.Item name="status" label="Trạng thái" style={{ width: 200, marginTop: 12 }}>
               <Select options={[{ value: 30, label: 'Hoạt động' }, { value: 0, label: 'Ngừng hoạt động' }]} />
             </Form.Item>
           )}

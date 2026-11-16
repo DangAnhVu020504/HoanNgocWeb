@@ -164,7 +164,7 @@ const CustomersTab: React.FC = () => {
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
-      <Card size="small">
+      <Card size="small" className="luxury-card">
         <Space wrap>
           <Input allowClear placeholder="Tìm tên / mã / ĐT / MST..." prefix={<SearchOutlined />}
             style={{ width: 260 }} value={search}
@@ -176,7 +176,7 @@ const CustomersTab: React.FC = () => {
             onChange={(v) => { setActiveOnly(v === 'active'); setPage(1); }}
             options={[{ value: 'active', label: 'Chỉ hoạt động' }, { value: 'all', label: 'Tất cả' }]} />
           <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>Tải lại</Button>
-          {canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Thêm khách hàng</Button>}
+          {canCreate && <Button type="primary" className="gold-gradient-btn" icon={<PlusOutlined />} onClick={openCreate}>Thêm khách hàng</Button>}
           {canCreate && (
             <label style={{ display: 'inline-block' }}>
               <input type="file" accept=".xlsx,.xls" style={{ display: 'none' }}
@@ -210,8 +210,8 @@ const CustomersTab: React.FC = () => {
         </Space>
       </Card>
       {err && <Alert type="error" showIcon message={err} closable />}
-      <Card size="small" title={`Danh mục khách hàng (${total})`} styles={{ body: { padding: 0 } }}>
-        <Table size="middle" rowKey="id" loading={loading} columns={columns} dataSource={items}
+      <Card size="small" className="luxury-card" title={<span className="card-title-gold">Danh mục khách hàng ({total})</span>} styles={{ body: { padding: 0 } }}>
+        <Table className="luxury-table" size="middle" rowKey="id" loading={loading} columns={columns} dataSource={items}
           pagination={{ current: page, pageSize, total, showSizeChanger: true, showTotal: (t) => `Tổng ${t} khách hàng` }}
           onChange={(p) => { setPage(p.current ?? 1); setPageSize(p.pageSize ?? 20); }}
           onRow={(r) => ({ onDoubleClick: () => { void openDetail(r.id); }, style: { cursor: 'pointer' } })} />
@@ -401,7 +401,7 @@ const SuppliersTab: React.FC = () => {
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
-      <Card size="small">
+      <Card size="small" className="luxury-card">
         <Space wrap>
           <Input allowClear placeholder="Tìm tên / mã / ĐT / email NCC..." prefix={<SearchOutlined />}
             style={{ width: 280 }} value={search}
@@ -413,12 +413,12 @@ const SuppliersTab: React.FC = () => {
             onChange={(v) => { setActiveOnly(v === 'active'); setPage(1); }}
             options={[{ value: 'active', label: 'Chỉ hoạt động' }, { value: 'all', label: 'Tất cả' }]} />
           <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>Tải lại</Button>
-          {canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Thêm NCC</Button>}
+          {canCreate && <Button type="primary" className="gold-gradient-btn" icon={<PlusOutlined />} onClick={openCreate}>Thêm NCC</Button>}
         </Space>
       </Card>
       {err && <Alert type="error" showIcon message={err} closable />}
-      <Card size="small" title={`Danh mục nhà cung cấp (${total})`} styles={{ body: { padding: 0 } }}>
-        <Table size="middle" rowKey="id" loading={loading} columns={columns} dataSource={items}
+      <Card size="small" className="luxury-card" title={<span className="card-title-gold">Danh mục nhà cung cấp ({total})</span>} styles={{ body: { padding: 0 } }}>
+        <Table className="luxury-table" size="middle" rowKey="id" loading={loading} columns={columns} dataSource={items}
           pagination={{ current: page, pageSize, total, showSizeChanger: true, showTotal: (t) => `Tổng ${t} nhà cung cấp` }}
           onChange={(p) => { setPage(p.current ?? 1); setPageSize(p.pageSize ?? 20); }} />
       </Card>
@@ -565,7 +565,7 @@ const WarehousesTab: React.FC = () => {
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
-      <Card size="small">
+      <Card size="small" className="luxury-card">
         <Space wrap>
           <Input allowClear placeholder="Tìm tên kho..." prefix={<SearchOutlined />}
             style={{ width: 260 }} value={search}
@@ -574,12 +574,12 @@ const WarehousesTab: React.FC = () => {
             onChange={(v) => { setActiveOnly(v === 'active'); setPage(1); }}
             options={[{ value: 'active', label: 'Chỉ hoạt động' }, { value: 'all', label: 'Tất cả' }]} />
           <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>Tải lại</Button>
-          {canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Thêm kho</Button>}
+          {canCreate && <Button type="primary" className="gold-gradient-btn" icon={<PlusOutlined />} onClick={openCreate}>Thêm kho</Button>}
         </Space>
       </Card>
       {err && <Alert type="error" showIcon message={err} closable />}
-      <Card size="small" title={`Danh mục kho hàng (${total})`} styles={{ body: { padding: 0 } }}>
-        <Table size="middle" rowKey="id" loading={loading} columns={columns} dataSource={items}
+      <Card size="small" className="luxury-card" title={<span className="card-title-gold">Danh mục kho hàng ({total})</span>} styles={{ body: { padding: 0 } }}>
+        <Table className="luxury-table" size="middle" rowKey="id" loading={loading} columns={columns} dataSource={items}
           pagination={{ current: page, pageSize, total, showSizeChanger: true, showTotal: (t) => `Tổng ${t} kho` }}
           onChange={(p) => { setPage(p.current ?? 1); setPageSize(p.pageSize ?? 20); }} />
       </Card>
@@ -615,6 +615,7 @@ const WarehousesTab: React.FC = () => {
 
 const CatalogPage: React.FC = () => (
   <Tabs
+    className="luxury-tabs"
     defaultActiveKey="customers"
     items={[
       { key: 'customers', label: 'Khách hàng', children: <CustomersTab /> },

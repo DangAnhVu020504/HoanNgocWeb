@@ -26,8 +26,7 @@ public sealed class SupplierReturnRepository
 
             var stocks = await DocRepositoryHelpers.GetStockAsync(
                 conn, tx, req.KhoXuatId, req.Lines.Select(l => l.MatHangId).ToList(), ct);
-            foreach (var l in req.Lines)
-                DocRepositoryHelpers.EnsureStock(stocks, l.MatHangId, l.SoLuong);
+            DocRepositoryHelpers.EnsureStockTotals(stocks, req.Lines.Select(l => (l.MatHangId, l.SoLuong)));
 
             var soPhieu = await DocRepositoryHelpers.NextSoPhieuAsync(conn, tx, map.Prefix, ct);
             var donHangId = Guid.NewGuid().ToString();

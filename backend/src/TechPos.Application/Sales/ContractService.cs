@@ -13,7 +13,8 @@ public sealed class ContractRequestValidator : AbstractValidator<ContractRequest
         RuleForEach(x => x.Lines).ChildRules(l =>
         {
             l.RuleFor(x => x.MatHangId).NotEmpty();
-            l.RuleFor(x => x.SoLuong).GreaterThan(0).WithMessage("Số lượng phải > 0");
+            l.RuleFor(x => x.SoLuong).GreaterThan(0).WithMessage("Số lượng phải > 0")
+                .Must(QtyRules.IsWhole).WithMessage("Số lượng phải là số nguyên");
             l.RuleFor(x => x.DonGia).GreaterThanOrEqualTo(0);
         });
         RuleFor(x => x.DatCoc).GreaterThanOrEqualTo(0);

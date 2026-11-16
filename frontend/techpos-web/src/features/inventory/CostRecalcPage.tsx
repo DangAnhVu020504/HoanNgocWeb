@@ -37,15 +37,15 @@ const CostRecalcPage: React.FC = () => {
   };
 
   return (
-    <Card size="small" title="Tính lại giá vốn" style={{ maxWidth: 720 }}>
+    <Card size="small" className="luxury-card" title={<span className="card-title-gold">Tính lại giá vốn</span>} style={{ maxWidth: 720 }}>
       <Space direction="vertical" style={{ width: '100%' }} size={12}>
         <Alert type="info" showIcon
           message="Kết quả được ghi vào W_KHOLEDGER.GIA_VON (thẻ kho) và TDONHANGCHITIET.GIAVON của chứng từ do web tạo. Dữ liệu Desktop không bị thay đổi." />
-        <Select style={{ width: '100%' }} value={phuongPhap} onChange={setPhuongPhap} options={METHODS} />
-        <DatePicker style={{ width: '100%' }} placeholder="Tính từ ngày" value={tuNgay}
+        <Select size="large" style={{ width: '100%' }} value={phuongPhap} onChange={setPhuongPhap} options={METHODS} />
+        <DatePicker size="large" style={{ width: '100%' }} placeholder="Tính từ ngày" value={tuNgay}
           onChange={setTuNgay} format="DD/MM/YYYY" />
 
-        <Button type="primary" size="large" block loading={running} onClick={run}>
+        <Button type="primary" size="large" block loading={running} onClick={run} className="gold-gradient-btn">
           THỰC HIỆN
         </Button>
 

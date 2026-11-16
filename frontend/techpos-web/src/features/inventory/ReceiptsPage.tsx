@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Col, Descriptions, Empty, Input, InputNumber, Row, Select, Space, Table, message } from 'antd';
 import { DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { createReceipt, getInventory, type ReceiptResult, type InventoryItem } from '../../api/inventory';
-import { printStockVoucherPdf } from '../../api/reports';
+import { printStockVoucherPdf, downloadStockVoucherPdf } from '../../api/reports';
 import { getProducts, type Product } from '../../api/products';
 import { getSuppliers, type Supplier } from '../../api/suppliers';
 import { getWarehouses, type Warehouse } from '../../api/warehouses';
@@ -130,23 +130,23 @@ const ReceiptsPage: React.FC = () => {
   return (
     <Row gutter={12}>
       <Col xs={24} lg={14}>
-        <Card size="small" title="Chọn mặt hàng nhập" extra={
-          <Input allowClear prefix={<SearchOutlined />} placeholder="Tìm mã / tên hàng..."
+        <Card size="small" className="luxury-card" title={<span className="card-title-gold">Chọn mặt hàng nhập</span>} extra={
+          <Input allowClear prefix={<SearchOutlined style={{ color: '#D4AF37' }} />} placeholder="Tìm mã / tên hàng..."
             style={{ width: 220 }} value={search} onChange={(e) => setSearch(e.target.value)} />
         }>
           <div style={{ maxHeight: 340, overflowY: 'auto' }}>
             <Row gutter={[8, 8]}>
               {filteredProducts.map((p) => (
                 <Col key={p.id} xs={12} md={8} lg={6}>
-                  <Card size="small" hoverable onClick={() => addLine(p)}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div>
-                    <div style={{ color: '#888', fontSize: 12 }}>{p.code ?? ''} · {p.donViTinh ?? ''}</div>
+                  <Card size="small" hoverable className="pos-product-card" onClick={() => addLine(p)}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: '#1C180E' }}>{p.name}</div>
+                    <div style={{ color: '#7E7359', fontSize: 12 }}>{p.code ?? ''} · {p.donViTinh ?? ''}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                      <span>Giá nhập: {fmtVnd(p.giaNhap)}</span>
-                      <span style={{ fontSize: 12, color: '#389e0d' }}>
+                      <span className="money">{fmtVnd(p.giaNhap)}</span>
+                      <span style={{ fontSize: 12, color: '#10B981', fontWeight: 600 }}>
                         Tồn: {tonCua(p.id).toLocaleString('vi-VN')}
                       </span>
-                      <PlusOutlined style={{ color: '#d4a017' }} />
+                      <PlusOutlined style={{ color: '#D4AF37' }} />
                     </div>
                   </Card>
                 </Col>
@@ -156,14 +156,15 @@ const ReceiptsPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card size="small" title={`Dòng nhập (${lines.length})`} style={{ marginTop: 12 }} styles={{ body: { padding: 0 } }}>
+        <Card size="small" className="luxury-card" title={<span className="card-title-gold">Dòng nhập ({lines.length})</span>} style={{ marginTop: 12 }} styles={{ body: { padding: 0 } }}>
           <Table
+            className="luxury-table"
             size="small" rowKey="matHangId" pagination={false}
             dataSource={lines}
             columns={[
               { title: 'Mặt hàng', dataIndex: 'tenMatHang' },
               { title: 'SL nhập', width: 110, render: (_, l: CartLine) => (
-                <InputNumber size="small" min={0.001} value={l.slNhap}
+                <InputNumber size="small" min={1} precision={0} value={l.slNhap}
                   onChange={(v) => updateLine(l.matHangId, { slNhap: v ?? 1 })} />
               ) },
               { title: 'Đơn giá', width: 130, render: (_, l: CartLine) => (
@@ -182,7 +183,7 @@ const ReceiptsPage: React.FC = () => {
       </Col>
 
       <Col xs={24} lg={10}>
-        <Card size="small" title="Phiếu nhập kho">
+        <Card size="small" className="luxury-card" title={<span className="card-title-gold">Phiếu nhập kho</span>}>
           <Space direction="vertical" style={{ width: '100%' }} size={8}>
             <Select placeholder="Kho nhập" style={{ width: '100%' }} value={khoNhapId ?? undefined}
               onChange={(v) => setKhoNhapId(v)}
@@ -209,7 +210,7 @@ const ReceiptsPage: React.FC = () => {
                   onChange={(v) => setPhiVanChuyen(v ?? 0)} />
               </Descriptions.Item>
               <Descriptions.Item label="Tổng cộng">
-                <span style={{ color: '#8a6100', fontSize: 18, fontWeight: 700 }}>{fmtVnd(tongCong)}</span>
+                <span className="money" style={{ color: '#8A6100', fontSize: 18 }}>{fmtVnd(tongCong)}</span>
               </Descriptions.Item>
               <Descriptions.Item label="Đã thanh toán">
                 <InputNumber min={0} step={10000} value={daThanhToan} style={{ width: 140 }}
@@ -221,6 +222,7 @@ const ReceiptsPage: React.FC = () => {
             </Descriptions>
 
             <Button type="primary" size="large" block loading={saving} onClick={save}
+              className="gold-gradient-btn"
               disabled={lines.length === 0 || !khoNhapId}>
               TẠO PHIẾU NHẬP
             </Button>
@@ -234,6 +236,10 @@ const ReceiptsPage: React.FC = () => {
                 <Button type="link" size="small" style={{ padding: 0, marginLeft: 8 }}
                   onClick={() => printStockVoucherPdf(lastReceipt.donHangId)}>
                   In phiếu
+                </Button>
+                <Button type="link" size="small" style={{ padding: 0, marginLeft: 8 }}
+                  onClick={() => downloadStockVoucherPdf(lastReceipt.donHangId)}>
+                  Tải về
                 </Button>
               </Card>
             )}

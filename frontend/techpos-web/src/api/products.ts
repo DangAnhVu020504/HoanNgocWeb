@@ -7,6 +7,8 @@ export interface Product {
   note: string | null;
   giaBan: number;
   giaBan2: number;
+  /** Giá bán chẵn (GIABANCHAN) — theo đơn vị chẵn */
+  giaBanChan: number;
   giaNhap: number;
   giaVon: number;
   tonToiThieu: number;
@@ -23,6 +25,8 @@ export interface Product {
   coSeri: boolean;
   timeCreated: string | null;
   timeModified: string | null;
+  /** Tồn kho hiện tại: theo kho đang chọn nếu truyền khoId, ngược lại tổng mọi kho */
+  tonKho: number;
 }
 
 export interface ProductGroup {
@@ -51,6 +55,8 @@ export interface ProductListParams {
   page?: number;
   pageSize?: number;
   sort?: string;
+  /** Truyền để tonKho = tồn tại kho này (bỏ trống = tổng mọi kho) */
+  khoId?: string;
 }
 
 export async function getProducts(params: ProductListParams = {}): Promise<PageResult<Product>> {
@@ -58,6 +64,7 @@ export async function getProducts(params: ProductListParams = {}): Promise<PageR
   if (params.search) q.set('search', params.search);
   if (params.groupId) q.set('groupId', params.groupId);
   if (params.activeOnly !== undefined) q.set('activeOnly', String(params.activeOnly));
+  if (params.khoId) q.set('khoId', params.khoId);
   q.set('page', String(params.page ?? 1));
   q.set('pageSize', String(params.pageSize ?? 20));
   if (params.sort) q.set('sort', params.sort);

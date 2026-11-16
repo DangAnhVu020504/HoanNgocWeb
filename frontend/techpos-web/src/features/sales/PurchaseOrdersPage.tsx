@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Col, Descriptions, Empty, Input, InputNumber, Row, Select, Space, Table, message } from 'antd';
-import { DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { DeleteOutlined, DownloadOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { createPurchaseOrder, type QuoteLineInput } from '../../api/salesdocs';
+import { printPurchaseOrderPdf, downloadPurchaseOrderPdf } from '../../api/reports';
 import { getProducts, type Product } from '../../api/products';
 import { getSuppliers, type Supplier } from '../../api/suppliers';
 
@@ -28,7 +29,7 @@ const PurchaseOrdersPage: React.FC = () => {
   const [phiVanChuyen, setPhiVanChuyen] = useState(0);
   const [ghiChu, setGhiChu] = useState('');
   const [saving, setSaving] = useState(false);
-  const [last, setLast] = useState<{ soPhieu: string; tongCong: number } | null>(null);
+  const [last, setLast] = useState<{ id: string; soPhieu: string; tongCong: number } | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,20 +95,23 @@ const PurchaseOrdersPage: React.FC = () => {
   return (
     <Row gutter={12}>
       <Col xs={24} lg={14}>
-        <Card size="small" title="Chọn mặt hàng đặt mua" extra={
-          <Input allowClear prefix={<SearchOutlined />} placeholder="Tìm mã / tên hàng..."
+        <Card size="small" className="luxury-card" title={<span className="card-title-gold">Chọn mặt hàng đặt mua</span>} extra={
+          <Input allowClear prefix={<SearchOutlined style={{ color: '#D4AF37' }} />} placeholder="Tìm mã / tên hàng..."
             style={{ width: 220 }} value={search} onChange={(e) => setSearch(e.target.value)} />
         }>
           <div style={{ maxHeight: 340, overflowY: 'auto' }}>
             <Row gutter={[8, 8]}>
               {filteredProducts.map((p) => (
                 <Col key={p.id} xs={12} md={8} lg={6}>
-                  <Card size="small" hoverable onClick={() => addLine(p)}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div>
-                    <div style={{ color: '#888', fontSize: 12 }}>{p.code ?? ''} · {p.donViTinh ?? ''}</div>
+                  <Card size="small" hoverable className="pos-product-card" onClick={() => addLine(p)}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: '#1C180E' }}>{p.name}</div>
+                    <div style={{ color: '#7E7359', fontSize: 12 }}>{p.code ?? ''} · {p.donViTinh ?? ''}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                      <span>{fmtVnd(p.giaNhap)}</span>
-                      <PlusOutlined style={{ color: '#d4a017' }} />
+                      <span className="money">{fmtVnd(p.giaNhap)}</span>
+                      <span style={{ fontSize: 12, color: p.tonKho > 0 ? '#10B981' : '#E11D48', fontWeight: 600 }}>
+                        Tồn: {p.tonKho.toLocaleString('vi-VN')}
+                      </span>
+                      <PlusOutlined style={{ color: '#D4AF37' }} />
                     </div>
                   </Card>
                 </Col>
@@ -117,14 +121,15 @@ const PurchaseOrdersPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card size="small" title={`Dòng đặt mua (${lines.length})`} style={{ marginTop: 12 }} styles={{ body: { padding: 0 } }}>
+        <Card size="small" className="luxury-card" title={<span className="card-title-gold">Dòng đặt mua ({lines.length})</span>} style={{ marginTop: 12 }} styles={{ body: { padding: 0 } }}>
           <Table
+            className="luxury-table"
             size="small" rowKey="matHangId" pagination={false}
             dataSource={lines}
             columns={[
               { title: 'Mặt hàng', dataIndex: 'tenMatHang' },
               { title: 'SL', width: 90, render: (_, l: PoLine) => (
-                <InputNumber size="small" min={0.001} value={l.soLuong}
+                <InputNumber size="small" min={1} precision={0} value={l.soLuong}
                   onChange={(v) => updateLine(l.matHangId, { soLuong: v ?? 1 })} />
               ) },
               { title: 'Đơn giá', width: 130, render: (_, l: PoLine) => (
@@ -147,7 +152,7 @@ const PurchaseOrdersPage: React.FC = () => {
       </Col>
 
       <Col xs={24} lg={10}>
-        <Card size="small" title="Đơn đặt mua nhà cung cấp">
+        <Card size="small" className="luxury-card" title={<span className="card-title-gold">Đơn đặt mua nhà cung cấp</span>}>
           <Space direction="vertical" style={{ width: '100%' }} size={8}>
             <Select showSearch optionFilterProp="label" placeholder="Nhà cung cấp"
               style={{ width: '100%' }} value={nhaCungCapId} onChange={(v) => setNhaCungCapId(v)}
@@ -166,11 +171,12 @@ const PurchaseOrdersPage: React.FC = () => {
                 <InputNumber min={0} value={phiVanChuyen} style={{ width: 140 }} onChange={(v) => setPhiVanChuyen(v ?? 0)} />
               </Descriptions.Item>
               <Descriptions.Item label="Tổng cộng">
-                <span style={{ color: '#8a6100', fontSize: 18, fontWeight: 700 }}>{fmtVnd(tongCong)}</span>
+                <span className="money" style={{ color: '#8A6100', fontSize: 18 }}>{fmtVnd(tongCong)}</span>
               </Descriptions.Item>
             </Descriptions>
 
             <Button type="primary" size="large" block loading={saving} onClick={save}
+              className="gold-gradient-btn"
               disabled={lines.length === 0 || !nhaCungCapId}>
               TẠO ĐƠN ĐẶT MUA
             </Button>
@@ -179,6 +185,16 @@ const PurchaseOrdersPage: React.FC = () => {
             {last && (
               <Card size="small" style={{ background: '#f6ffed', borderColor: '#b7eb8f' }}>
                 <b>Đơn {last.soPhieu}</b> — Tổng {fmtVnd(last.tongCong)}
+                <div style={{ marginTop: 6 }}>
+                  <Space>
+                    <Button size="small" icon={<EyeOutlined />} onClick={() => printPurchaseOrderPdf(last.id)}>
+                      Xem PDF
+                    </Button>
+                    <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadPurchaseOrderPdf(last.id)}>
+                      Tải về máy
+                    </Button>
+                  </Space>
+                </div>
               </Card>
             )}
           </Space>

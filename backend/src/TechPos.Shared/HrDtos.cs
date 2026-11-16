@@ -16,6 +16,8 @@ public sealed class EmployeeDto
     public string Name { get; set; } = string.Empty;
     public string? DiaChi { get; set; }
     public string? DienThoai { get; set; }
+    /// <summary>Email nhận phiếu lương (W_EMPLOYEE_EMAIL, fallback SUSER.EMAIL).</summary>
+    public string? Email { get; set; }
     /// <summary>Cách tính lương (desktop CACHTINHLUONG).</summary>
     public int CachTinhLuong { get; set; }
     public decimal LuongCa { get; set; }
@@ -46,7 +48,8 @@ public sealed record EmployeeCreateRequest(
     decimal PhuCap = 0,
     bool NghiThu7 = false,
     bool NghiChuNhat = true,
-    string? Note = null);
+    string? Note = null,
+    string? Email = null);
 
 /// <summary>Sửa nhân viên (partial — null = giữ nguyên).</summary>
 public sealed record EmployeeUpdateRequest(
@@ -60,7 +63,8 @@ public sealed record EmployeeUpdateRequest(
     bool? NghiThu7,
     bool? NghiChuNhat,
     string? Note,
-    int? Status);
+    int? Status,
+    string? Email = null);
 
 /// <summary>Ca làm việc (DCALAMVIEC) — TILELUONG = tỉ lệ lương ca.</summary>
 public sealed class ShiftDto

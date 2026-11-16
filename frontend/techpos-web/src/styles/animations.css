@@ -1,0 +1,368 @@
+/* ==========================================================================
+   HOÀN NGỌC GROUP - LUXURY WHITE & GOLD ANIMATIONS & UTILITIES
+   60 FPS Fluid Transitions, Keyframes & Tactile Design Tokens
+   ========================================================================== */
+
+/* 1. KEYFRAME ANIMATIONS */
+
+/* Luồng sáng vàng kim quét qua các nút VIP / thẻ nổi bật */
+@keyframes goldShimmerSweep {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Sóng sáng Aurora vàng kim uyển chuyển (cho màn hình đăng nhập & hero) */
+@keyframes auroraFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Xuất hiện lớp lang từ dưới lên (Staggered Fade-in-up) */
+@keyframes fadeInUpStagger {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Nhịp thở êm ái cho trạng thái đồng bộ & chuông báo động (Live Pulse) */
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(212, 175, 55, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+  }
+}
+
+/* Nhấp nháy xanh lục bảo cho Live Sync Heartbeat */
+@keyframes pulseEmerald {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+/* Xác nhận nháy vàng khi thêm hàng vào giỏ POS */
+@keyframes itemAddPulse {
+  0% {
+    background-color: rgba(255, 249, 230, 0.9);
+    transform: scale(1.01);
+  }
+  50% {
+    background-color: rgba(212, 175, 55, 0.2);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1);
+  }
+}
+
+/* 2. COMPONENT UTILITY CLASSES */
+
+/* Thẻ kính mờ pha lê (Frosted Glass Panel) */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.86) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(212, 175, 55, 0.22) !important;
+}
+
+/* Thẻ Luxury Card tiêu chuẩn Hoàn Ngọc */
+.luxury-card {
+  background: #ffffff;
+  border-radius: 12px !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+  box-shadow: 0 4px 20px -2px rgba(212, 175, 55, 0.08), 0 2px 6px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.luxury-card:hover {
+  border-color: rgba(212, 175, 55, 0.4) !important;
+  box-shadow: 0 8px 28px -4px rgba(212, 175, 55, 0.16), 0 3px 10px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Thẻ KPI Số Liệu Điều Hành (Executive KPI Card) */
+.luxury-kpi-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  box-shadow: 0 4px 16px -2px rgba(212, 175, 55, 0.08);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.luxury-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #FFE28A, #D4AF37, #A67C1E);
+}
+
+.luxury-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -4px rgba(212, 175, 55, 0.18);
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
+.luxury-kpi-card .kpi-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8A6100;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.luxury-kpi-card .kpi-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #1C180E;
+  line-height: 1.2;
+}
+
+.luxury-kpi-card .kpi-value.text-gold {
+  color: #8A6100;
+}
+
+.luxury-kpi-card .kpi-sub {
+  font-size: 12px;
+  color: #7E7359;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Nút bấm Vàng Kim Hoàng Gia có hiệu ứng Shimmer khi hover */
+.gold-gradient-btn {
+  background: linear-gradient(135deg, #FFDF73 0%, #D4AF37 50%, #B8860B 100%) !important;
+  color: #1F1703 !important;
+  font-weight: 700 !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.gold-gradient-btn:hover {
+  transform: translateY(-1px) scale(1.01) !important;
+  box-shadow: 0 6px 22px rgba(212, 175, 55, 0.45) !important;
+  color: #000000 !important;
+}
+
+.gold-gradient-btn:active {
+  transform: scale(0.98) !important;
+}
+
+/* Ánh sáng vàng quét ngang nút bấm */
+.gold-shimmer-sweep {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: goldShimmerSweep 3s infinite;
+}
+
+/* Bảng dữ liệu Pro (Luxury Table) */
+.luxury-table .ant-table-thead > tr > th {
+  background: #FAF8F2 !important;
+  color: #8A6100 !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.3) !important;
+  padding: 12px 14px !important;
+}
+
+.luxury-table .ant-table-tbody > tr:hover > td {
+  background: #FFFDF2 !important;
+}
+
+.luxury-table .ant-table-tbody > tr > td {
+  padding: 11px 14px !important;
+  border-bottom: 1px solid #F4EEDC !important;
+  transition: background-color 0.2s ease;
+}
+
+/* Dòng tổng kết bảng viền kép mạ vàng */
+.luxury-summary-row {
+  background: #FFFDF5 !important;
+  border-top: 2px solid #D4AF37 !important;
+}
+
+.luxury-summary-row td {
+  padding: 12px 14px !important;
+  font-size: 14px !important;
+  border-top: 2px solid #D4AF37 !important;
+  border-bottom: 2px solid #D4AF37 !important;
+}
+
+/* Mã chứng từ / SKU monospace sang trọng */
+.code-badge {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  background: #FAF8F2;
+  color: #725203;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  display: inline-block;
+}
+
+/* Badge số tiền công nợ nổi bật */
+.debt-amount-badge {
+  color: #E11D48;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+}
+
+.debt-summary-val {
+  color: #E11D48;
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* Phím tắt hiển thị dạng Keyboard Badge */
+.kbd-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8A6100;
+  background: #FFF9E6;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 4px;
+  padding: 1px 5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  margin-left: 4px;
+}
+
+/* Hiệu ứng nhịp thở cho Sync Heartbeat */
+.sync-pulse-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  animation: pulseEmerald 2.2s infinite;
+}
+
+.sync-pulse-indicator.running {
+  background-color: #10B981;
+}
+
+.sync-pulse-indicator.warning {
+  background-color: #F59E0B;
+  animation: pulseGlow 2s infinite;
+}
+
+.sync-pulse-indicator.error {
+  background-color: #E11D48;
+}
+
+/* Tab điều hướng mạ vàng thanh lịch */
+.luxury-tabs > .ant-tabs-nav {
+  margin-bottom: 18px;
+}
+
+.luxury-tabs > .ant-tabs-nav::before {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+.luxury-tabs .ant-tabs-tab {
+  font-weight: 700 !important;
+  letter-spacing: 0.2px;
+  transition: color 0.22s ease;
+}
+
+.luxury-tabs .ant-tabs-tab:hover {
+  color: #D4AF37 !important;
+}
+
+.luxury-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #8A6100 !important;
+  text-shadow: 0 0 12px rgba(212, 175, 55, 0.25);
+}
+
+.luxury-tabs .ant-tabs-ink-bar {
+  background: linear-gradient(90deg, #FFE28A, #D4AF37, #A67C1E) !important;
+  height: 3px !important;
+  border-radius: 2px;
+}
+
+/* Số tiền tài chính — font số học cao cấp */
+.money {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.money-neg { color: #E11D48; }
+.money-pos { color: #10B981; }
+
+/* Tiêu đề card mạ vàng */
+.card-title-gold {
+  color: #8A6100;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.2px;
+}
+
+/* Lưới sản phẩm POS Card */
+.pos-product-card {
+  border-radius: 10px !important;
+  border: 1px solid #EFE9D9 !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer;
+  background: #ffffff;
+}
+
+.pos-product-card:hover {
+  transform: translateY(-2px);
+  border-color: #D4AF37 !important;
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.18) !important;
+}
+
+.pos-product-card:active {
+  transform: scale(0.97);
+}

@@ -32,6 +32,27 @@ public sealed class SalesByDayRow
     public decimal ConNo { get; set; }
 }
 
+/// <summary>Dòng doanh thu chi tiết theo từng hoá đơn (báo cáo nâng cao).</summary>
+public sealed class RevenueDetailRow
+{
+    public string DonHangId { get; set; } = string.Empty;
+    public string SoPhieu { get; set; } = string.Empty;
+    public DateTime? Ngay { get; set; }
+    public string? KhachHangId { get; set; }
+    public string? KhachHang { get; set; }
+    public string? DienThoai { get; set; }
+    public string? NhanVien { get; set; }
+    public string? Kho { get; set; }
+    public decimal TienHang { get; set; }
+    public decimal TienGiamGia { get; set; }
+    public decimal TienThue { get; set; }
+    public decimal PhiVanChuyen { get; set; }
+    public decimal TongCong { get; set; }
+    public decimal ThanhToan { get; set; }
+    public decimal ConNo { get; set; }
+    public int? Loai { get; set; }
+}
+
 /// <summary>Dòng báo cáo doanh số theo mặt hàng.</summary>
 public sealed class SalesByItemRow
 {
@@ -143,6 +164,64 @@ public sealed class StockVoucherLineDto
     public decimal SlXuat { get; set; }
     public decimal DonGia { get; set; }
     public decimal ThanhTien { get; set; }
+}
+
+/// <summary>
+/// Chứng từ bán hàng dùng bảng riêng để in A4 — báo giá (TBAOGIA) / đặt hàng KH (TDATHANG) /
+/// đặt mua NCC (TDATHANGNCC) / hợp đồng (THOPDONG).
+/// </summary>
+public sealed class SalesDocPrintDto
+{
+    public string DocType { get; set; } = string.Empty;   // BAO_GIA | DAT_HANG | DAT_MUA_NCC | HOP_DONG
+    public string SoPhieu { get; set; } = string.Empty;
+    public DateTime? Ngay { get; set; }
+    public string? TenKhach { get; set; }               // KH (BG/DH/HD) hoặc NCC (DN)
+    public string? DiaChi { get; set; }
+    public string? DienThoai { get; set; }
+    public string? NhanVien { get; set; }
+    public string? GhiChu { get; set; }
+    public DateTime? NgayKy { get; set; }               // hợp đồng
+    public DateTime? TuNgay { get; set; }
+    public DateTime? DenNgay { get; set; }
+    public decimal DatCoc { get; set; }                  // hợp đồng
+    public decimal TienHang { get; set; }
+    public decimal TienThue { get; set; }
+    public decimal TienGiamGia { get; set; }
+    public decimal PhiVanChuyen { get; set; }
+    public decimal TongCong { get; set; }
+    public IReadOnlyList<SalesDocLineDto> Lines { get; set; } = [];
+}
+
+public sealed class SalesDocLineDto
+{
+    public string? MatHang { get; set; }
+    public string? DonViTinh { get; set; }
+    public decimal SoLuong { get; set; }
+    public decimal DonGia { get; set; }
+    public decimal TileGiamGia { get; set; }
+    public decimal ThanhTien { get; set; }
+}
+
+/// <summary>Phiếu gửi hàng để in A4 — gửi COD (TGUIHANGCOD) / kết quả COD (TKETQUAGUICOD) / giao xe (TGIAOHANGTHEOXE). Lines = danh sách đơn hàng.</summary>
+public sealed class ShipmentDocPrintDto
+{
+    public string DocType { get; set; } = string.Empty;   // GUI_COD | KET_QUA_COD | GIAO_XE
+    public string SoPhieu { get; set; } = string.Empty;
+    public DateTime? Ngay { get; set; }
+    public string? DonViChuyenPhat { get; set; }
+    public string? XeGiaoHang { get; set; }
+    public string? NhanVien { get; set; }
+    public string? GhiChu { get; set; }
+    public decimal TongTien { get; set; }
+    public IReadOnlyList<ShipmentDocLineDto> Lines { get; set; } = [];
+}
+
+public sealed class ShipmentDocLineDto
+{
+    public string SoDon { get; set; } = string.Empty;
+    public string? KhachHang { get; set; }
+    public DateTime? Ngay { get; set; }
+    public decimal TongCong { get; set; }
 }
 
 // ---------- Phase 6.1 bổ sung: công nợ / tồn quỹ / KQKD ----------

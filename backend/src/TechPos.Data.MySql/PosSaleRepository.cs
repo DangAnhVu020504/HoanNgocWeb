@@ -65,17 +65,10 @@ public sealed class PosSaleRepository
                     "LOAI/MODE cho bán lẻ chưa được xác minh trên DB production (VERIFIED=0). " +
                     "Hãy xác minh tập giá trị LOAI/MODE trên DB thật rồi UPDATE W_DOC_TYPE_MAP SET VERIFIED=1.");
 
-            // Chặn bán vượt tồn — trừ kho có CHOPHEPAMKHO=1 (cho phép tồn âm)
-            var choPhepAm = await conn.ExecuteScalarAsync<long>(
-                "SELECT COALESCE(CHOPHEPAMKHO,0) FROM DKHOHANG WHERE ID = @kho LIMIT 1",
-                new { kho = req.KhoId }, tx) == 1;
-            if (!choPhepAm)
-            {
-                var stocks = await DocRepositoryHelpers.GetStockAsync(
-                    conn, tx, req.KhoId, req.Lines.Select(l => l.MatHangId).ToList(), ct);
-                foreach (var l in req.Lines)
-                    DocRepositoryHelpers.EnsureStock(stocks, l.MatHangId, l.SoLuong);
-            }
+            // Chặn bán vượt tồn — tồn kho không được âm (áp dụng mọi kho)
+            var stocks = await DocRepositoryHelpers.GetStockAsync(
+                conn, tx, req.KhoId, req.Lines.Select(l => l.MatHangId).ToList(), ct);
+            DocRepositoryHelpers.EnsureStockTotals(stocks, req.Lines.Select(l => (l.MatHangId, l.SoLuong)));
 
             var soPhieu = await NextSoPhieuAsync(conn, tx, map.SoHieuPrefix, ct);
 
@@ -83,14 +76,14 @@ public sealed class PosSaleRepository
                 """
                 INSERT INTO TDONHANG
                 (ID, NAME, NOTE, STATUS, USERCREATEDID, NGAY, TIMECREATED,
-                 TIENHANG, TIENGIAMGIA, TONGCONG,
+                 TIENHANG, TIENGIAMGIA, TONGCONG, TIENTHUE, PHIVANCHUYEN,
                  DKHACHHANGID, DNHANVIENXUATID, DKHOXUATID, DIENGIAI,
                  KHACHDUA, TRALAI, CONNO, TIENTHANHTOAN, LOAI, MODE,
                  W_ORIGIN, W_DELETED)
                 VALUES
                 (@id, @sophieu, @note, 30, @uc, @ngay, @tc,
-                 @tienhang, @tiengiam, @tongcong,
-                 @kh, @nv, @kho, NULL,
+                 @tienhang, @tiengiam, @tongcong, @tienthue, @phivc,
+                 @kh, @nv, @kho, @diengiai,
                  @khachdua, @tralai, @conno, @tongcong, @loai, @mode,
                  'WEB', 0)
                 """,
@@ -105,9 +98,12 @@ public sealed class PosSaleRepository
                     tienhang = totals.TienHang,
                     tiengiam = totals.TienGiamGia,
                     tongcong = totals.TongCong,
+                    tienthue = req.TienThue,
+                    phivc = req.PhiVanChuyen,
                     kh = (object?)req.KhachHangId ?? DBNull.Value,
                     nv = (object?)req.NhanVienId ?? DBNull.Value,
                     kho = req.KhoId,
+                    diengiai = (object?)req.DienGiai ?? DBNull.Value,
                     khachdua = totals.KhachDua,
                     tralai = totals.TraLai,
                     conno = totals.ConNo,

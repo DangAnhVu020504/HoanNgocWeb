@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TechPos.Api.Middleware;
+using TechPos.Application.Catalog;
+using TechPos.Application.Notifications;
 using TechPos.Application.Pos;
 using TechPos.Shared;
 
@@ -10,7 +12,8 @@ namespace TechPos.Api.Controllers;
 [ApiController]
 [Route("api/pos")]
 [Authorize]
-public sealed class PosController(PosSaleService pos, WholesaleService wholesale, CustomerReturnService returns) : ControllerBase
+public sealed class PosController(PosSaleService pos, WholesaleService wholesale, CustomerReturnService returns,
+    CustomerService customers, EmailService emails) : ControllerBase
 {
     /// <summary>Tính tổng tiền preview (không ghi DB).</summary>
     [HttpPost("quote")]
@@ -29,6 +32,7 @@ public sealed class PosController(PosSaleService pos, WholesaleService wholesale
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
                      ?? User.FindFirst("sub")?.Value ?? "";
         var result = await pos.CreateSaleAsync(body.ToSaleRequest(), userId, body.KhachDua, HttpContext.RequestAborted);
+        await SendSaleEmailsAsync(body.KhachHangId, result, ct);
         return Ok(ApiResult<PosSaleResult>.Ok(result, HttpContext.TraceIdentifier));
     }
 
@@ -40,6 +44,7 @@ public sealed class PosController(PosSaleService pos, WholesaleService wholesale
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
                      ?? User.FindFirst("sub")?.Value ?? "";
         var result = await wholesale.CreateSaleAsync(body.ToSaleRequest(), userId, body.KhachDua, HttpContext.RequestAborted);
+        await SendSaleEmailsAsync(body.KhachHangId, result, ct);
         return Ok(ApiResult<PosSaleResult>.Ok(result, HttpContext.TraceIdentifier));
     }
 
@@ -52,6 +57,32 @@ public sealed class PosController(PosSaleService pos, WholesaleService wholesale
                      ?? User.FindFirst("sub")?.Value ?? "";
         var result = await returns.CreateAsync(req, userId, HttpContext.RequestAborted);
         return Ok(ApiResult<CustomerReturnResult>.Ok(result, HttpContext.TraceIdentifier));
+    }
+
+    private async Task SendSaleEmailsAsync(string? khachHangId, PosSaleResult result, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(khachHangId)) return;
+        try
+        {
+            var kh = await customers.GetAsync(khachHangId, ct);
+            if (string.IsNullOrWhiteSpace(kh.Email)) return;
+            var variables = new Dictionary<string, string?>
+            {
+                ["CUSTOMER_NAME"] = kh.Name,
+                ["ORDER_NUMBER"] = result.SoPhieu,
+                ["ORDER_DATE"] = DateTime.Now.ToString("dd/MM/yyyy HH:mm"),
+                ["TOTAL_AMOUNT"] = result.TongCong.ToString("N0") + " đ",
+                ["DEBT_AMOUNT"] = result.ConNo.ToString("N0") + " đ"
+            };
+            await emails.EnqueueFromEventAsync("ORDER_CREATED", [(kh.Email!, kh.Name)], variables,
+                "TDONHANG", result.DonHangId, ct);
+            if (result.ConNo > 0)
+                await emails.EnqueueFromEventAsync("DEBT_CREATED", [(kh.Email!, kh.Name)], variables,
+                    "TDONHANG", result.DonHangId, ct);
+        }
+        catch (Exception)
+        {
+        }
     }
 }
 
@@ -69,7 +100,10 @@ public sealed record PosCreateRequest(
     decimal TienGiamGia = 0,
     decimal TileGiamGia = 0,
     string? GhiChu = null,
-    decimal KhachDua = 0)
+    decimal KhachDua = 0,
+    string? DienGiai = null,
+    decimal TienThue = 0,
+    decimal PhiVanChuyen = 0)
 {
-    public PosSaleRequest ToSaleRequest() => new(KhoId, KhachHangId, NhanVienId, Lines, TienGiamGia, TileGiamGia, GhiChu);
+    public PosSaleRequest ToSaleRequest() => new(KhoId, KhachHangId, NhanVienId, Lines, TienGiamGia, TileGiamGia, GhiChu, DienGiai, TienThue, PhiVanChuyen);
 }

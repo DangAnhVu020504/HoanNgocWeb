@@ -21,10 +21,15 @@ public sealed class AuthController(AuthService auth) : ControllerBase
     }
 
     [HttpPost("refresh")]
-    public IActionResult Refresh([FromBody] RefreshRequest request)
+    public async Task<IActionResult> Refresh([FromBody] RefreshRequest request, CancellationToken ct)
     {
-        // Phase 3 hoàn thiện: verify refresh token, rotate + revoke, issue mới.
-        return StatusCode(501, ApiResult<string>.Fail("Chưa triển khai — Phase 3", HttpContext.TraceIdentifier));
+        // Verify refresh token → rotate (thu hồi cũ, cấp mới) → access token mới.
+        // Hết hạn/không hợp lệ ⇒ trả success=false, frontend đưa về trang đăng nhập.
+        var result = await auth.RefreshAsync(request.RefreshToken, ct);
+        if (result is null)
+            return Ok(ApiResult<string>.Fail("Phiên đăng nhập đã hết hạn — vui lòng đăng nhập lại",
+                HttpContext.TraceIdentifier));
+        return Ok(ApiResult<TokenResponse>.Ok(result, HttpContext.TraceIdentifier));
     }
 
     [HttpGet("me")]

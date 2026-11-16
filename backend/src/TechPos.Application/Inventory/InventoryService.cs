@@ -14,7 +14,8 @@ public sealed class ReceiptRequestValidator : FluentValidation.AbstractValidator
         RuleForEach(x => x.Lines).ChildRules(l =>
         {
             l.RuleFor(x => x.MatHangId).NotEmpty();
-            l.RuleFor(x => x.SlNhap).GreaterThan(0).WithMessage("Số lượng nhập phải > 0");
+            l.RuleFor(x => x.SlNhap).GreaterThan(0).WithMessage("Số lượng nhập phải > 0")
+                .Must(QtyRules.IsWhole).WithMessage("Số lượng nhập phải là số nguyên");
             l.RuleFor(x => x.DonGia).GreaterThanOrEqualTo(0);
         });
     }
@@ -30,7 +31,8 @@ public sealed class StocktakeRequestValidator : FluentValidation.AbstractValidat
         RuleForEach(x => x.Lines).ChildRules(l =>
         {
             l.RuleFor(x => x.MatHangId).NotEmpty();
-            l.RuleFor(x => x.SlThucTe).GreaterThanOrEqualTo(0).WithMessage("SL thực tế phải >= 0");
+            l.RuleFor(x => x.SlThucTe).GreaterThanOrEqualTo(0).WithMessage("SL thực tế phải >= 0")
+                .Must(QtyRules.IsWhole).WithMessage("SL thực tế phải là số nguyên");
         });
     }
 }
@@ -45,7 +47,8 @@ public sealed class StockIssueRequestValidator : FluentValidation.AbstractValida
         RuleForEach(x => x.Lines).ChildRules(l =>
         {
             l.RuleFor(x => x.MatHangId).NotEmpty();
-            l.RuleFor(x => x.SoLuong).GreaterThan(0).WithMessage("Số lượng xuất phải > 0");
+            l.RuleFor(x => x.SoLuong).GreaterThan(0).WithMessage("Số lượng xuất phải > 0")
+                .Must(QtyRules.IsWhole).WithMessage("Số lượng xuất phải là số nguyên");
             l.RuleFor(x => x.DonGia).GreaterThanOrEqualTo(0);
         });
     }
@@ -64,7 +67,8 @@ public sealed class StockTransferRequestValidator : FluentValidation.AbstractVal
         RuleForEach(x => x.Lines).ChildRules(l =>
         {
             l.RuleFor(x => x.MatHangId).NotEmpty();
-            l.RuleFor(x => x.SoLuong).GreaterThan(0).WithMessage("Số lượng chuyển phải > 0");
+            l.RuleFor(x => x.SoLuong).GreaterThan(0).WithMessage("Số lượng chuyển phải > 0")
+                .Must(QtyRules.IsWhole).WithMessage("Số lượng chuyển phải là số nguyên");
         });
     }
 }
@@ -80,7 +84,8 @@ public sealed class SupplierReturnRequestValidator : FluentValidation.AbstractVa
         RuleForEach(x => x.Lines).ChildRules(l =>
         {
             l.RuleFor(x => x.MatHangId).NotEmpty();
-            l.RuleFor(x => x.SoLuong).GreaterThan(0).WithMessage("Số lượng trả phải > 0");
+            l.RuleFor(x => x.SoLuong).GreaterThan(0).WithMessage("Số lượng trả phải > 0")
+                .Must(QtyRules.IsWhole).WithMessage("Số lượng trả phải là số nguyên");
             l.RuleFor(x => x.DonGia).GreaterThanOrEqualTo(0);
         });
     }

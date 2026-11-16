@@ -41,7 +41,7 @@ const EmployeesPage: React.FC = () => {
   const openEdit = (e: Employee) => {
     setEditing(e);
     form.setFieldsValue({
-      name: e.name, diaChi: e.diaChi, dienThoai: e.dienThoai,
+      name: e.name, diaChi: e.diaChi, dienThoai: e.dienThoai, email: e.email,
       cachTinhLuong: e.cachTinhLuong, luongCa: e.luongCa, luongThang: e.luongThang,
       phuCap: e.phuCap, nghiThu7: e.nghiThu7, nghiChuNhat: e.nghiChuNhat, note: e.note,
     });
@@ -54,6 +54,7 @@ const EmployeesPage: React.FC = () => {
     try {
       const payload = {
         name: v.name, diaChi: v.diaChi || null, dienThoai: v.dienThoai || null,
+        email: editing ? (v.email ?? '') : (v.email || null),
         cachTinhLuong: v.cachTinhLuong, luongCa: v.luongCa || 0, luongThang: v.luongThang || 0,
         phuCap: v.phuCap || 0, nghiThu7: !!v.nghiThu7, nghiChuNhat: !!v.nghiChuNhat, note: v.note || null,
       };
@@ -72,19 +73,21 @@ const EmployeesPage: React.FC = () => {
   };
 
   return (
-    <Card size="small" title="Danh mục nhân viên" extra={
+    <Card size="small" className="luxury-card" title={<span className="card-title-gold">Danh mục nhân viên</span>} extra={
       <Space>
         <Input.Search allowClear placeholder="Tìm tên / SĐT nhân viên..." style={{ width: 260 }}
           onSearch={(v) => { setSearch(v); setPage(1); void load(1, v); }} />
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreate()}>Thêm nhân viên</Button>
+        <Button type="primary" className="gold-gradient-btn" icon={<PlusOutlined />} onClick={() => openCreate()}>Thêm nhân viên</Button>
       </Space>
     }>
-      <Table size="small" rowKey="id" loading={loading} dataSource={rows}
+      <Table className="luxury-table" size="middle" rowKey="id" loading={loading} dataSource={rows}
         pagination={{ current: page, pageSize: 20, total, showSizeChanger: false,
           onChange: (p) => { setPage(p); void load(p, search); } }}
         columns={[
           { title: 'Tên nhân viên', dataIndex: 'name' },
           { title: 'Điện thoại', dataIndex: 'dienThoai', width: 130 },
+          { title: 'Email nhận lương', dataIndex: 'email', width: 220, ellipsis: true,
+            render: (v: string | null) => v || '—' },
           { title: 'Địa chỉ', dataIndex: 'diaChi', ellipsis: true },
           { title: 'Cách tính lương', dataIndex: 'cachTinhLuong', width: 120,
             render: (v: number) => v === 1 ? <Tag color="blue">Theo tháng</Tag> : <Tag color="green">Theo ca</Tag> },
@@ -118,6 +121,10 @@ const EmployeesPage: React.FC = () => {
               <Input allowClear />
             </Form.Item>
           </Space>
+          <Form.Item name="email" label="Email nhận phiếu lương"
+            rules={[{ type: 'email', message: 'Email không hợp lệ' }, { max: 200 }]}>
+            <Input allowClear placeholder="nhanvien@congty.vn" />
+          </Form.Item>
           <Form.Item name="cachTinhLuong" label="Cách tính lương" rules={[{ required: true }]}>
             <Select options={[{ value: 0, label: 'Theo ca' }, { value: 1, label: 'Theo tháng' }]} />
           </Form.Item>

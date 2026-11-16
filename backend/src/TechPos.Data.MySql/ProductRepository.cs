@@ -15,7 +15,7 @@ public sealed class ProductRepository
 
     private static readonly string[] SelectCols =
     [
-        "p.ID", "p.CODE", "p.NAME", "p.NOTE", "p.GIABAN", "p.GIABAN2", "p.GIANHAP", "p.GIAVON",
+        "p.ID", "p.CODE", "p.NAME", "p.NOTE", "p.GIABAN", "p.GIABAN2", "p.GIABANCHAN", "p.GIANHAP", "p.GIAVON",
         "p.TONTOITHIEU", "p.TONTOIDA", "p.HOAHONG", "p.STATUS", "p.XUATXU", "p.MAUSAC",
         "p.CHATLIEU", "p.COHANSUDUNG", "p.COSERI", "p.TIMECREATED", "p.TIMEMODIFIED"
     ];
@@ -44,7 +44,14 @@ public sealed class ProductRepository
             "LEFT JOIN DNHOMMATHANG g ON g.ID = p.DNHOMMATHANGID " +
             "LEFT JOIN DHANGSANXUAT h ON h.ID = p.DHANGSANXUATID";
 
-        var colSql = string.Join(", ", SelectCols) + ", u.NAME AS DonViTinh, g.NAME AS NhomMatHang, h.NAME AS HangSanXuat";
+        // Tồn kho theo kho đang chọn (KhoId) hoặc tổng mọi kho — hiển thị ở mọi nơi chọn mặt hàng
+        var khoScope = !string.IsNullOrWhiteSpace(q.KhoId);
+        if (khoScope) dp.Add("@kho", q.KhoId);
+        joinSql += khoScope
+            ? " LEFT JOIN (SELECT DMATHANGID, COALESCE(SUM(TON),0) TONKHO FROM OTONKHO WHERE W_DELETED = 0 AND DKHOHANGID = @kho GROUP BY DMATHANGID) st ON st.DMATHANGID = p.ID"
+            : " LEFT JOIN (SELECT DMATHANGID, COALESCE(SUM(TON),0) TONKHO FROM OTONKHO WHERE W_DELETED = 0 GROUP BY DMATHANGID) st ON st.DMATHANGID = p.ID";
+
+        var colSql = string.Join(", ", SelectCols) + ", u.NAME AS DonViTinh, g.NAME AS NhomMatHang, h.NAME AS HangSanXuat, COALESCE(st.TONKHO, 0) AS TonKho";
 
         var sort = q.Sort?.Trim() switch
         {
@@ -69,7 +76,7 @@ public sealed class ProductRepository
 
     public async Task<ProductDto?> GetByIdAsync(string id, CancellationToken ct = default)
     {
-        var colSql = string.Join(", ", SelectCols) + ", u.NAME AS DonViTinh, g.NAME AS NhomMatHang, h.NAME AS HangSanXuat";
+        var colSql = string.Join(", ", SelectCols) + ", u.NAME AS DonViTinh, g.NAME AS NhomMatHang, h.NAME AS HangSanXuat, COALESCE(st.TONKHO, 0) AS TonKho";
         await using var conn = await _factory.OpenAsync(ct);
         return await conn.QueryFirstOrDefaultAsync<ProductDto>(
             $"""
@@ -77,13 +84,14 @@ public sealed class ProductRepository
             LEFT JOIN DDONVITINH u ON u.ID = p.DDONVITINHID
             LEFT JOIN DNHOMMATHANG g ON g.ID = p.DNHOMMATHANGID
             LEFT JOIN DHANGSANXUAT h ON h.ID = p.DHANGSANXUATID
+            LEFT JOIN (SELECT DMATHANGID, COALESCE(SUM(TON),0) TONKHO FROM OTONKHO WHERE W_DELETED = 0 GROUP BY DMATHANGID) st ON st.DMATHANGID = p.ID
             WHERE p.ID = @id AND p.W_DELETED = 0
             """, new { id });
     }
 
     public async Task<ProductDto?> GetByBarcodeAsync(string barcode, CancellationToken ct = default)
     {
-        var colSql = string.Join(", ", SelectCols) + ", u.NAME AS DonViTinh, g.NAME AS NhomMatHang, h.NAME AS HangSanXuat";
+        var colSql = string.Join(", ", SelectCols) + ", u.NAME AS DonViTinh, g.NAME AS NhomMatHang, h.NAME AS HangSanXuat, COALESCE(st.TONKHO, 0) AS TonKho";
         await using var conn = await _factory.OpenAsync(ct);
         return await conn.QueryFirstOrDefaultAsync<ProductDto>(
             $"""
@@ -91,6 +99,7 @@ public sealed class ProductRepository
             LEFT JOIN DDONVITINH u ON u.ID = p.DDONVITINHID
             LEFT JOIN DNHOMMATHANG g ON g.ID = p.DNHOMMATHANGID
             LEFT JOIN DHANGSANXUAT h ON h.ID = p.DHANGSANXUATID
+            LEFT JOIN (SELECT DMATHANGID, COALESCE(SUM(TON),0) TONKHO FROM OTONKHO WHERE W_DELETED = 0 GROUP BY DMATHANGID) st ON st.DMATHANGID = p.ID
             WHERE (p.CODE = @b OR p.MASANCO = @b) AND p.STATUS = 30 AND p.W_DELETED = 0
             LIMIT 1
             """, new { b = barcode });

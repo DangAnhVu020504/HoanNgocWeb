@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.Extensions.Options;
+using TechPos.Application.Notifications;
 using TechPos.Data.MySql;
 using TechPos.Shared;
 using ValidationException = TechPos.Shared.ValidationException;
@@ -7,7 +8,7 @@ using ValidationException = TechPos.Shared.ValidationException;
 namespace TechPos.Application.Catalog;
 
 /// <summary>Use-case đọc + ghi danh mục khách hàng (Phase 4). KHÔNG chứa SQL.</summary>
-public sealed class CustomerService(CustomerRepository repo, IOptions<FeatureFlagOptions> flags)
+public sealed class CustomerService(CustomerRepository repo, IOptions<FeatureFlagOptions> flags, EmailService emails)
 {
     private readonly CustomerValidator _validator = new();
 
@@ -44,6 +45,15 @@ public sealed class CustomerService(CustomerRepository repo, IOptions<FeatureFla
         if (!string.IsNullOrWhiteSpace(req.MaKhach) && await repo.MaKhachExistsAsync(req.MaKhach, null, ct))
             throw new ConflictException($"Mã khách '{req.MaKhach}' đã tồn tại");
         var id = await repo.InsertAsync(req, userId, ct);
+        if (!string.IsNullOrWhiteSpace(req.Email))
+        {
+            await emails.EnqueueFromEventAsync("NEW_CUSTOMER", [(req.Email!, req.Name)],
+                new Dictionary<string, string?>
+                {
+                    ["CUSTOMER_NAME"] = req.Name,
+                    ["DIEN_THOAI"] = req.DienThoai
+                }, "DKHACHHANG", id, ct);
+        }
         return new CatalogCreateResult(id, req.Name);
     }
 

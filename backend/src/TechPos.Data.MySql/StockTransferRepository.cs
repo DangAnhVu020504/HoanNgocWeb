@@ -41,8 +41,7 @@ public sealed class StockTransferRepository
                 new { kho = req.KhoXuatId, ids = matHangIds }, tx))
                 .ToDictionary(r => r.DMathangId, r => r);
             var tonMap = stocks.ToDictionary(kv => kv.Key, kv => kv.Value.Ton);
-            foreach (var l in req.Lines)
-                DocRepositoryHelpers.EnsureStock(tonMap, l.MatHangId, l.SoLuong);
+            DocRepositoryHelpers.EnsureStockTotals(tonMap, req.Lines.Select(l => (l.MatHangId, l.SoLuong)));
 
             var soPhieu = await DocRepositoryHelpers.NextSoPhieuAsync(conn, tx, map.Prefix, ct);
             var donHangId = Guid.NewGuid().ToString();

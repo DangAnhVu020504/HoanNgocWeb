@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Col, Descriptions, Empty, Input, InputNumber, Row, Select, Space, Table, Tag, message } from 'antd';
-import { DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { DeleteOutlined, DownloadOutlined, EyeOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { createWholesale, type PosSaleResult } from '../../api/pos';
+import { downloadInvoicePdf, printInvoicePdf } from '../../api/reports';
 import { getProducts, type Product } from '../../api/products';
 import { getCustomers, type Customer } from '../../api/customers';
 import { getWarehouses, type Warehouse } from '../../api/warehouses';
@@ -136,8 +137,8 @@ const WholesalePage: React.FC = () => {
   return (
     <Row gutter={12}>
       <Col xs={24} lg={14}>
-        <Card size="small" title="Chọn mặt hàng (giá sỉ)" extra={
-          <Input allowClear prefix={<SearchOutlined />} placeholder="Tìm mã / tên hàng..."
+        <Card size="small" className="luxury-card" title={<span className="card-title-gold">Chọn mặt hàng (giá sỉ)</span>} extra={
+          <Input allowClear prefix={<SearchOutlined style={{ color: '#D4AF37' }} />} placeholder="Tìm mã / tên hàng..."
             style={{ width: 220 }} value={search} onChange={(e) => setSearch(e.target.value)} />
         }>
           <div style={{ maxHeight: 340, overflowY: 'auto' }}>
@@ -145,15 +146,15 @@ const WholesalePage: React.FC = () => {
               {filteredProducts.map((p) => {
                 return (
                   <Col key={p.id} xs={12} md={8} lg={6}>
-                    <Card size="small" hoverable onClick={() => addLine(p)}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div>
-                      <div style={{ color: '#888', fontSize: 12 }}>{p.code ?? ''} · {p.donViTinh ?? ''}</div>
+                    <Card size="small" hoverable className="pos-product-card" onClick={() => addLine(p)}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: '#1C180E' }}>{p.name}</div>
+                      <div style={{ color: '#7E7359', fontSize: 12 }}>{p.code ?? ''} · {p.donViTinh ?? ''}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                        <span>{fmtVnd(giaSi(p))}</span>
-                        <span style={{ fontSize: 12, color: tonCua(p.id) > 0 ? '#389e0d' : '#ff4d4f' }}>
+                        <span className="money">{fmtVnd(giaSi(p))}</span>
+                        <span style={{ fontSize: 12, color: tonCua(p.id) > 0 ? '#10B981' : '#E11D48', fontWeight: 600 }}>
                           Tồn: {tonCua(p.id).toLocaleString('vi-VN')}
                         </span>
-                        <PlusOutlined style={{ color: '#d4a017' }} />
+                        <PlusOutlined style={{ color: '#D4AF37' }} />
                       </div>
                     </Card>
                   </Col>
@@ -164,14 +165,15 @@ const WholesalePage: React.FC = () => {
           </div>
         </Card>
 
-        <Card size="small" title={`Giỏ bán sỉ (${lines.length})`} style={{ marginTop: 12 }} styles={{ body: { padding: 0 } }}>
+        <Card size="small" className="luxury-card" title={<span className="card-title-gold">Giỏ bán sỉ ({lines.length})</span>} style={{ marginTop: 12 }} styles={{ body: { padding: 0 } }}>
           <Table
+            className="luxury-table"
             size="small" rowKey="matHangId" pagination={false}
             dataSource={lines}
             columns={[
               { title: 'Mặt hàng', dataIndex: 'tenMatHang' },
               { title: 'SL', width: 100, render: (_, l: CartLine) => (
-                <InputNumber size="small" min={0.001} value={l.soLuong}
+                <InputNumber size="small" min={1} precision={0} value={l.soLuong}
                   onChange={(v) => updateLine(l.matHangId, { soLuong: v ?? 1 })} />
               ) },
               { title: 'Đơn giá sỉ', width: 140, render: (_, l: CartLine) => (
@@ -194,7 +196,7 @@ const WholesalePage: React.FC = () => {
       </Col>
 
       <Col xs={24} lg={10}>
-        <Card size="small" title="Hoá đơn bán sỉ">
+        <Card size="small" className="luxury-card" title={<span className="card-title-gold">Hoá đơn bán sỉ</span>}>
           <Space direction="vertical" style={{ width: '100%' }} size={8}>
             <Select placeholder="Kho xuất" style={{ width: '100%' }} value={khoId ?? undefined}
               onChange={(v) => setKhoId(v)}
@@ -211,17 +213,18 @@ const WholesalePage: React.FC = () => {
                   onChange={(v) => setTienGiamGia(v ?? 0)} />
               </Descriptions.Item>
               <Descriptions.Item label="Tổng cộng">
-                <span style={{ color: '#8a6100', fontSize: 18, fontWeight: 700 }}>{fmtVnd(tongCong)}</span>
+                <span className="money" style={{ color: '#8A6100', fontSize: 18 }}>{fmtVnd(tongCong)}</span>
               </Descriptions.Item>
               <Descriptions.Item label="Khách đưa">
                 <InputNumber style={{ width: 140 }} min={0} step={10000} value={khachDua}
                   onChange={(v) => setKhachDua(v ?? 0)} />
               </Descriptions.Item>
-              <Descriptions.Item label="Tiền thừa"><span style={{ color: '#389e0d' }}>{fmtVnd(traLai)}</span></Descriptions.Item>
+              <Descriptions.Item label="Tiền thừa"><span className="money money-pos">{fmtVnd(traLai)}</span></Descriptions.Item>
               {conNo > 0 && <Descriptions.Item label="Còn nợ"><Tag color="red">{fmtVnd(conNo)}</Tag></Descriptions.Item>}
             </Descriptions>
 
             <Button type="primary" size="large" block loading={saving} onClick={save}
+              className="gold-gradient-btn"
               disabled={lines.length === 0 || !khoId}>
               TẠO HOÁ ĐƠN BÁN SỈ
             </Button>
@@ -236,6 +239,16 @@ const WholesalePage: React.FC = () => {
               <Card size="small" style={{ background: '#f6ffed', borderColor: '#b7eb8f' }}>
                 <b>Hoá đơn {lastBill.soPhieu}</b> — Tổng {fmtVnd(lastBill.tongCong)}
                 {lastBill.conNo > 0 && ` · Còn nợ ${fmtVnd(lastBill.conNo)}`}
+                <div style={{ marginTop: 6 }}>
+                  <Space>
+                    <Button size="small" icon={<EyeOutlined />} onClick={() => printInvoicePdf(lastBill.donHangId)}>
+                      Xem PDF
+                    </Button>
+                    <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadInvoicePdf(lastBill.donHangId)}>
+                      Tải về máy
+                    </Button>
+                  </Space>
+                </div>
               </Card>
             )}
           </Space>

@@ -18,7 +18,10 @@ public sealed record PosSaleRequest(
     IReadOnlyList<PosSaleLine> Lines,
     decimal TienGiamGia = 0,
     decimal TileGiamGia = 0,
-    string? GhiChu = null);
+    string? GhiChu = null,
+    string? DienGiai = null,
+    decimal TienThue = 0,
+    decimal PhiVanChuyen = 0);
 
 public sealed record PosPaymentLine(string PhuongThuc, decimal SoTien, string? Note = null);
 
@@ -49,7 +52,9 @@ public sealed record SaleTotals(
     decimal TongCong,
     decimal KhachDua,
     decimal TraLai,
-    decimal ConNo);
+    decimal ConNo,
+    decimal TienThue = 0,
+    decimal PhiVanChuyen = 0);
 
 // ===================== Phase 4.2 — Bán sỉ =====================
 // Bán sỉ dùng lại PosSaleRequest/PosSaleLine/PosSaleResult/PosCalculator —

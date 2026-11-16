@@ -22,10 +22,10 @@ public sealed class ProductsController(ProductService products, CatalogImportSer
     public async Task<IActionResult> List(
         [FromQuery] string? search, [FromQuery] string? groupId,
         [FromQuery] bool? activeOnly, [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
-        [FromQuery] string sort = "NAME", CancellationToken ct = default)
+        [FromQuery] string sort = "NAME", [FromQuery] string? khoId = null, CancellationToken ct = default)
     {
         var result = await products.SearchAsync(
-            new ProductListQuery(search, groupId, activeOnly, page, pageSize, sort), ct);
+            new ProductListQuery(search, groupId, activeOnly, page, pageSize, sort, khoId), ct);
         return Ok(ApiResult<PageResult<ProductDto>>.Ok(result, HttpContext.TraceIdentifier));
     }
 
@@ -106,7 +106,7 @@ public sealed class ProductsController(ProductService products, CatalogImportSer
         await file.CopyToAsync(ms, ct);
         var (uid, uname, ip, ua) = CurrentUser.Info(HttpContext);
         var result = await import.ImportProductsAsync(ms.ToArray(), uid, ct);
-        await AuditLogger.WriteAsync(db, uid, uname, "IMPORT", "DMATHANG", null,
+        await AuditLogger.WriteAsync(db, uid, uname, "IMPORT", "DMATHANG", "",
             newValue: new { file.FileName, result.Created, result.Skipped, SoLoi = result.Errors.Count },
             ip: ip, userAgent: ua, correlationId: HttpContext.TraceIdentifier, ct: ct);
         return Ok(ApiResult<ImportResult>.Ok(result, HttpContext.TraceIdentifier));

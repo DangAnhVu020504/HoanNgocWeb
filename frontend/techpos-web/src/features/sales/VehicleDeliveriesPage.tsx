@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Empty, Input, Select, Space, Table, Tag, message } from 'antd';
+import { DownloadOutlined, EyeOutlined } from '@ant-design/icons';
 import {
   createVehicleDelivery, getVehicles, getWebOrders,
   type LookupItem, type WebOrderItem,
 } from '../../api/salesdocs';
+import { printVehicleDeliveryPdf, downloadVehicleDeliveryPdf } from '../../api/reports';
 
 const fmtVnd = (n: number) => n.toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' ₫';
 
@@ -15,7 +17,7 @@ const VehicleDeliveriesPage: React.FC = () => {
   const [ghiChu, setGhiChu] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [last, setLast] = useState<string | null>(null);
+  const [last, setLast] = useState<{ id: string; text: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ const VehicleDeliveriesPage: React.FC = () => {
     setSaving(true); setErr(null);
     try {
       const r = await createVehicleDelivery({ xeGiaoHangId, nhanVienId: null, donHangIds: selected, ghiChu: ghiChu || null });
-      setLast(`Đã tạo phiếu giao xe ${r.soPhieu} (${r.soDonHang} đơn)`);
+      setLast({ id: r.id, text: `Đã tạo phiếu giao xe ${r.soPhieu} (${r.soDonHang} đơn)` });
       void message.success(`Đã tạo phiếu giao xe ${r.soPhieu}`);
       setSelected([]); setGhiChu('');
     } catch (e: unknown) {
@@ -51,15 +53,23 @@ const VehicleDeliveriesPage: React.FC = () => {
       <Input allowClear placeholder="Ghi chú / Tuyến đường" style={{ maxWidth: 420 }} value={ghiChu} onChange={(e) => setGhiChu(e.target.value)} />
       <Tag color="blue">Chọn đơn web để gắn vào chuyến ({selected.length} đã chọn)</Tag>
       <Table
-        size="small" rowKey="id" dataSource={orders} columns={columns} pagination={{ pageSize: 8 }}
+        className="luxury-table"
+        size="middle" rowKey="id" dataSource={orders} columns={columns} pagination={{ pageSize: 8 }}
         rowSelection={{ selectedRowKeys: selected, onChange: (keys) => setSelected(keys as string[]) }}
         locale={{ emptyText: <Empty description="Chưa có đơn hàng web nào" /> }}
       />
-      <Button type="primary" loading={saving} onClick={save} disabled={selected.length === 0 || !xeGiaoHangId}>
+      <Button type="primary" className="gold-gradient-btn" loading={saving} onClick={save} disabled={selected.length === 0 || !xeGiaoHangId}>
         TẠO PHIẾU GIAO XE ({selected.length})
       </Button>
       {err && <Alert type="error" showIcon message={err} />}
-      {last && <Alert type="success" showIcon message={last} />}
+      {last && (
+        <Alert type="success" showIcon message={last.text} action={
+          <Space size={4}>
+            <Button size="small" icon={<EyeOutlined />} onClick={() => printVehicleDeliveryPdf(last.id)}>Xem PDF</Button>
+            <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadVehicleDeliveryPdf(last.id)}>Tải về máy</Button>
+          </Space>
+        } />
+      )}
     </Space>
   );
 };

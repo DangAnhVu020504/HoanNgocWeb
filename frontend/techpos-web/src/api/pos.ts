@@ -2,12 +2,14 @@ import { http, ApiEnvelope } from './http';
 
 export interface PosCartItem {
   matHangId: string;
+  maHang: string | null;
   tenMatHang: string;
   donViTinh: string | null;
   donGia: number;
   soLuong: number;
   tileGiamGia: number;
   tienGiamGia: number;
+  ghiChu: string | null;
 }
 
 export interface PosSaleLineInput {
@@ -26,6 +28,8 @@ export interface SaleTotals {
   khachDua: number;
   traLai: number;
   conNo: number;
+  tienThue: number;
+  phiVanChuyen: number;
 }
 
 export interface PosSaleResult {
@@ -86,6 +90,10 @@ export interface PosCreateRequest {
   tileGiamGia: number;
   ghiChu: string | null;
   khachDua: number;
+  /** Diễn giải / tiền thuế / phí vận chuyển — tuỳ chọn (bán sỉ bỏ trống). */
+  dienGiai?: string | null;
+  tienThue?: number;
+  phiVanChuyen?: number;
 }
 
 // ===================== Phase 4.2 — Bán sỉ =====================

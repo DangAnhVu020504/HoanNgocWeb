@@ -42,4 +42,22 @@ public sealed class LookupRepository
             LIMIT 200
             """)).ToList();
     }
+
+    /// <summary>Loại hợp đồng (DLOAIHOPDONG) — form hợp đồng (mục 4.9).</summary>
+    public async Task<IReadOnlyList<LookupItem>> GetContractTypesAsync(CancellationToken ct = default)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        return (await conn.QueryAsync<LookupItem>(
+            "SELECT ID AS Id, NAME AS Name FROM DLOAIHOPDONG " +
+            "WHERE STATUS = 30 AND W_DELETED = 0 ORDER BY NAME")).ToList();
+    }
+
+    /// <summary>Trạng thái hợp đồng (DTRANGTHAIHOPDONG) — form hợp đồng (mục 4.9).</summary>
+    public async Task<IReadOnlyList<LookupItem>> GetContractStatusesAsync(CancellationToken ct = default)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        return (await conn.QueryAsync<LookupItem>(
+            "SELECT ID AS Id, NAME AS Name FROM DTRANGTHAIHOPDONG " +
+            "WHERE STATUS = 30 AND W_DELETED = 0 ORDER BY NAME")).ToList();
+    }
 }
