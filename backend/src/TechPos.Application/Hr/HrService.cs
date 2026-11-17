@@ -13,6 +13,7 @@ public sealed class EmployeeValidator : AbstractValidator<EmployeeCreateRequest>
     public EmployeeValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(340).WithMessage("Tên nhân viên bắt buộc");
+        RuleFor(x => x.ChucVu).NotEmpty().MaximumLength(100).WithMessage("Chức vụ bắt buộc");
         RuleFor(x => x)
             .Must(x => x.CachTinhLuong is 0 or 1)
             .WithMessage("Cách tính lương chỉ nhận 0 (theo ca) hoặc 1 (theo tháng)")
@@ -121,6 +122,7 @@ public sealed class HrService(HrRepository repo, IOptions<FeatureFlagOptions> fl
             throw new ValidationException("Dữ liệu nhân viên không hợp lệ",
                 vr.Errors.Select(e => new ApiError(e.PropertyName ?? "", e.ErrorCode ?? "", e.ErrorMessage)).ToList());
         var id = await repo.InsertEmployeeAsync(req, userId, ct);
+        await repo.UpsertEmployeePositionAsync(id, req.ChucVu, userId, ct);
         if (!string.IsNullOrWhiteSpace(req.Email))
             await repo.UpsertEmployeeEmailAsync(id, req.Email, userId, ct);
         return new CatalogCreateResult(id, req.Name);
@@ -130,7 +132,19 @@ public sealed class HrService(HrRepository repo, IOptions<FeatureFlagOptions> fl
     {
         CatalogWriteGuard.EnsureWriteAllowed(flags.Value);
         _ = await GetEmployeeAsync(id, ct);
+        if (req.ChucVu is not null)
+        {
+            var cv = req.ChucVu.Trim();
+            if (cv.Length == 0)
+                throw new ValidationException("Dữ liệu nhân viên không hợp lệ",
+                    [new ApiError(nameof(req.ChucVu), "CHUCVU_REQUIRED", "Chức vụ bắt buộc")]);
+            if (cv.Length > 100)
+                throw new ValidationException("Dữ liệu nhân viên không hợp lệ",
+                    [new ApiError(nameof(req.ChucVu), "CHUCVU_TOO_LONG", "Chức vụ tối đa 100 ký tự")]);
+        }
         await repo.UpdateEmployeeAsync(id, req, userId, ct);
+        if (req.ChucVu is not null)
+            await repo.UpsertEmployeePositionAsync(id, req.ChucVu, userId, ct);
         if (req.Email is not null)
             await repo.UpsertEmployeeEmailAsync(id, req.Email, userId, ct);
         return await GetEmployeeAsync(id, ct);

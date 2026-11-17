@@ -7,6 +7,7 @@ import { getProducts, type Product } from '../../api/products';
 import { getCustomers, type Customer } from '../../api/customers';
 import { getWarehouses, type Warehouse } from '../../api/warehouses';
 import { getInventory, type InventoryItem } from '../../api/inventory';
+import { getEmployees, type Employee } from '../../api/hr';
 
 const fmtVnd = (n: number) => n.toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' ₫';
 
@@ -24,9 +25,11 @@ const WholesalePage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
   const [khoId, setKhoId] = useState<string | undefined>(undefined);
   const [khachHangId, setKhachHangId] = useState<string | null>(null);
+  const [nhanVienId, setNhanVienId] = useState<string | null>(null);
   const [lines, setLines] = useState<CartLine[]>([]);
   const [tienGiamGia, setTienGiamGia] = useState(0);
   const [khachDua, setKhachDua] = useState(0);
@@ -41,6 +44,7 @@ const WholesalePage: React.FC = () => {
       if (r.items.length > 0) setKhoId((k) => k ?? r.items[0].id);
     }).catch(() => { });
     getCustomers({ pageSize: 200 }).then((r) => setCustomers(r.items)).catch(() => { });
+    getEmployees({ pageSize: 200 }).then((r) => setEmployees(r.items)).catch(() => { });
     getProducts({ pageSize: 50, activeOnly: true }).then((r) => setProducts(r.items)).catch(() => { });
   }, []);
 
@@ -104,7 +108,7 @@ const WholesalePage: React.FC = () => {
       const result = await createWholesale({
         khoId,
         khachHangId,
-        nhanVienId: null,
+        nhanVienId,
         lines: lines.map((l) => ({
           matHangId: l.matHangId, khoHangId: null, soLuong: l.soLuong, donGia: l.donGia,
           tileGiamGia: 0, giamTheoTien: l.giamTheoTien,
@@ -205,6 +209,10 @@ const WholesalePage: React.FC = () => {
               style={{ width: '100%' }} value={khachHangId ?? undefined}
               onChange={(v) => setKhachHangId(v ?? null)}
               options={customers.map((c) => ({ value: c.id, label: `${c.maKhach ?? ''} — ${c.name}` }))} />
+            <Select allowClear showSearch optionFilterProp="label" placeholder="Nhân viên xuất hoá đơn"
+              style={{ width: '100%' }} value={nhanVienId ?? undefined}
+              onChange={(v) => setNhanVienId(v ?? null)}
+              options={employees.map((e) => ({ value: e.id, label: e.name }))} />
 
             <Descriptions column={1} size="small" bordered>
               <Descriptions.Item label="Tiền hàng"><b>{fmtVnd(tienHang)}</b></Descriptions.Item>

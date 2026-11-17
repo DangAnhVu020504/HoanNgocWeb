@@ -87,8 +87,13 @@ public static class InvoicePdfBuilder
                         {
                             r.RelativeItem().Text(t =>
                             {
-                                t.Span("Nhân viên: ").FontColor(Muted);
-                                t.Span(inv.NhanVien ?? "—");
+                                t.Span("Nhân viên xuất HĐ: ").FontColor(Muted);
+                                t.Span(inv.NhanVien ?? "—").SemiBold();
+                                if (!string.IsNullOrWhiteSpace(inv.NhanVienDienThoai))
+                                {
+                                    t.Span(" · ĐT: ").FontColor(Muted);
+                                    t.Span(inv.NhanVienDienThoai);
+                                }
                             });
                             r.RelativeItem().AlignRight().Text(t =>
                             {

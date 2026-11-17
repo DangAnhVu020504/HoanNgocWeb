@@ -6,6 +6,7 @@ import type { PageResult } from './customers';
 export interface Employee {
   id: string;
   name: string;
+  chucVu: string | null;
   diaChi: string | null;
   dienThoai: string | null;
   email: string | null;
@@ -33,6 +34,7 @@ export async function getEmployees(params: { search?: string; activeOnly?: boole
 
 export interface EmployeePayload {
   name: string;
+  chucVu: string;
   diaChi: string | null;
   dienThoai: string | null;
   email: string | null;

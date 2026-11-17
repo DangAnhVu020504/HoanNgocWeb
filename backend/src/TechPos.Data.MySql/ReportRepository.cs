@@ -221,13 +221,15 @@ public sealed class ReportRepository
             """
             SELECT h.ID AS DonHangId, h.NAME AS SoPhieu, h.NGAY AS Ngay,
                    k.NAME AS KhachHang, k.DIACHI AS DiaChi, k.DIENTHOAI AS DienThoai,
-                   nv.NAME AS NhanVien, kx.NAME AS Kho,
+                   COALESCE(NULLIF(nv.NAME,''), NULLIF(u.FULL_NAME,''), u.USERNAME) AS NhanVien,
+                   nv.DIENTHOAI AS NhanVienDienThoai, kx.NAME AS Kho,
                    COALESCE(h.TIENHANG,0) AS TienHang, COALESCE(h.TIENGIAMGIA,0) AS TienGiamGia,
                    COALESCE(h.TONGCONG,0) AS TongCong, COALESCE(h.KHACHDUA,0) AS KhachDua,
                    COALESCE(h.TRALAI,0) AS TraLai, COALESCE(h.CONNO,0) AS ConNo, h.NOTE AS GhiChu
             FROM TDONHANG h
             LEFT JOIN DKHACHHANG k ON k.ID = h.DKHACHHANGID
             LEFT JOIN DNHANVIEN nv ON nv.ID = h.DNHANVIENXUATID
+            LEFT JOIN W_USER u ON u.ID = h.USERCREATEDID
             LEFT JOIN DKHOHANG kx ON kx.ID = h.DKHOXUATID
             WHERE h.ID = @id AND h.W_DELETED = 0
             """, new { id = donHangId });

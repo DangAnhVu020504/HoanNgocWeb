@@ -34,14 +34,14 @@ const EmployeesPage: React.FC = () => {
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ nghiChuNhat: true, luongCa: 0, luongThang: 0, phuCap: 0 });
+    form.setFieldsValue({ chucVu: '', nghiChuNhat: true, luongCa: 0, luongThang: 0, phuCap: 0 });
     setOpen(true);
   };
 
   const openEdit = (e: Employee) => {
     setEditing(e);
     form.setFieldsValue({
-      name: e.name, diaChi: e.diaChi, dienThoai: e.dienThoai, email: e.email,
+      name: e.name, chucVu: e.chucVu, diaChi: e.diaChi, dienThoai: e.dienThoai, email: e.email,
       cachTinhLuong: e.cachTinhLuong, luongCa: e.luongCa, luongThang: e.luongThang,
       phuCap: e.phuCap, nghiThu7: e.nghiThu7, nghiChuNhat: e.nghiChuNhat, note: e.note,
     });
@@ -53,7 +53,7 @@ const EmployeesPage: React.FC = () => {
     setSaving(true);
     try {
       const payload = {
-        name: v.name, diaChi: v.diaChi || null, dienThoai: v.dienThoai || null,
+        name: v.name, chucVu: (v.chucVu ?? '').trim(), diaChi: v.diaChi || null, dienThoai: v.dienThoai || null,
         email: editing ? (v.email ?? '') : (v.email || null),
         cachTinhLuong: v.cachTinhLuong, luongCa: v.luongCa || 0, luongThang: v.luongThang || 0,
         phuCap: v.phuCap || 0, nghiThu7: !!v.nghiThu7, nghiChuNhat: !!v.nghiChuNhat, note: v.note || null,
@@ -75,7 +75,7 @@ const EmployeesPage: React.FC = () => {
   return (
     <Card size="small" className="luxury-card" title={<span className="card-title-gold">Danh mục nhân viên</span>} extra={
       <Space>
-        <Input.Search allowClear placeholder="Tìm tên / SĐT nhân viên..." style={{ width: 260 }}
+        <Input.Search allowClear placeholder="Tìm tên / SĐT / chức vụ..." style={{ width: 260 }}
           onSearch={(v) => { setSearch(v); setPage(1); void load(1, v); }} />
         <Button type="primary" className="gold-gradient-btn" icon={<PlusOutlined />} onClick={() => openCreate()}>Thêm nhân viên</Button>
       </Space>
@@ -85,6 +85,8 @@ const EmployeesPage: React.FC = () => {
           onChange: (p) => { setPage(p); void load(p, search); } }}
         columns={[
           { title: 'Tên nhân viên', dataIndex: 'name' },
+          { title: 'Chức vụ', dataIndex: 'chucVu', width: 180,
+            render: (v: string | null) => v || '—' },
           { title: 'Điện thoại', dataIndex: 'dienThoai', width: 130 },
           { title: 'Email nhận lương', dataIndex: 'email', width: 220, ellipsis: true,
             render: (v: string | null) => v || '—' },
@@ -112,6 +114,9 @@ const EmployeesPage: React.FC = () => {
         <Form form={form} layout="vertical" initialValues={{ nghiChuNhat: true }}>
           <Form.Item name="name" label="Tên nhân viên" rules={[{ required: true, message: 'Nhập tên nhân viên' }]}>
             <Input allowClear placeholder="Nguyễn Văn A" />
+          </Form.Item>
+          <Form.Item name="chucVu" label="Chức vụ" rules={[{ required: true, whitespace: true, message: 'Nhập chức vụ nhân viên' }, { max: 100 }]}>
+            <Input allowClear placeholder="Nhân viên bán hàng / Kế toán / Thủ kho..." />
           </Form.Item>
           <Space style={{ width: '100%' }} size={10}>
             <Form.Item name="dienThoai" label="Điện thoại" style={{ width: 180 }}>

@@ -14,6 +14,8 @@ public sealed class EmployeeDto
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    /// <summary>Chức vụ (W_EMPLOYEE_POSITION — DNHANVIEN không có cột này).</summary>
+    public string? ChucVu { get; set; }
     public string? DiaChi { get; set; }
     public string? DienThoai { get; set; }
     /// <summary>Email nhận phiếu lương (W_EMPLOYEE_EMAIL, fallback SUSER.EMAIL).</summary>
@@ -49,7 +51,8 @@ public sealed record EmployeeCreateRequest(
     bool NghiThu7 = false,
     bool NghiChuNhat = true,
     string? Note = null,
-    string? Email = null);
+    string? Email = null,
+    string? ChucVu = null);
 
 /// <summary>Sửa nhân viên (partial — null = giữ nguyên).</summary>
 public sealed record EmployeeUpdateRequest(
@@ -64,7 +67,8 @@ public sealed record EmployeeUpdateRequest(
     bool? NghiChuNhat,
     string? Note,
     int? Status,
-    string? Email = null);
+    string? Email = null,
+    string? ChucVu = null);
 
 /// <summary>Ca làm việc (DCALAMVIEC) — TILELUONG = tỉ lệ lương ca.</summary>
 public sealed class ShiftDto

@@ -50,7 +50,7 @@ public sealed class EmployeesController(HrService hr, MySqlConnectionFactory db)
         var old = await hr.GetEmployeeAsync(id, ct);
         var result = await hr.UpdateEmployeeAsync(id, req, uid, ct);
         await AuditLogger.WriteAsync(db, uid, uname, "UPDATE", "DNHANVIEN", id,
-            oldValue: new { old.Name, old.DiaChi, old.DienThoai, old.CachTinhLuong, old.LuongCa, old.LuongThang, old.PhuCap, old.Status },
+            oldValue: new { old.Name, old.ChucVu, old.DiaChi, old.DienThoai, old.CachTinhLuong, old.LuongCa, old.LuongThang, old.PhuCap, old.Status },
             newValue: req, ip, ua, HttpContext.TraceIdentifier, ct: ct);
         return Ok(ApiResult<EmployeeDto>.Ok(result, HttpContext.TraceIdentifier));
     }

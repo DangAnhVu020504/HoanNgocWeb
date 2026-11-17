@@ -12,14 +12,23 @@ public class HrValidatorTests
 {
     private static EmployeeCreateRequest Emp(
         string name = "Nguyễn Văn A", int ctl = 0,
-        decimal luongCa = 50000, decimal luongThang = 0, decimal phuCap = 0) =>
-        new(name, null, null, ctl, luongCa, luongThang, phuCap, false, true, null);
+        decimal luongCa = 50000, decimal luongThang = 0, decimal phuCap = 0,
+        string? chucVu = "Nhân viên bán hàng") =>
+        new(name, null, null, ctl, luongCa, luongThang, phuCap, false, true, null, null, chucVu);
 
     // ---------- EmployeeValidator ----------
     [Fact]
     public void Employee_valid_with_name()
     {
         new EmployeeValidator().Validate(Emp()).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Employee_invalid_without_chuc_vu()
+    {
+        var r = new EmployeeValidator().Validate(Emp(chucVu: ""));
+        r.IsValid.Should().BeFalse();
+        r.Errors.Should().Contain(e => e.PropertyName == nameof(EmployeeCreateRequest.ChucVu));
     }
 
     [Fact]

@@ -18,7 +18,7 @@ public sealed class HrRepository
     // ---------- Nhân viên (DNHANVIEN) ----------
 
     private const string EmployeeCols =
-        "e.ID, e.NAME, e.NOTE, e.STATUS, e.DIACHI AS DiaChi, e.DIENTHOAI AS DienThoai, " +
+        "e.ID, e.NAME, wp.CHUCVU AS ChucVu, e.NOTE, e.STATUS, e.DIACHI AS DiaChi, e.DIENTHOAI AS DienThoai, " +
         "COALESCE(NULLIF(we.EMAIL, ''), NULLIF(su.EMAIL, '')) AS Email, " +
         "COALESCE(e.CACHTINHLUONG,0) AS CachTinhLuong, COALESCE(e.LUONGCA,0) AS LuongCa, " +
         "COALESCE(e.LUONGTHANG,0) AS LuongThang, COALESCE(e.PHUCAP,0) AS PhuCap, " +
@@ -28,6 +28,7 @@ public sealed class HrRepository
     private const string EmployeeFrom =
         "DNHANVIEN e " +
         "LEFT JOIN W_EMPLOYEE_EMAIL we ON we.DNHANVIENID = e.ID " +
+        "LEFT JOIN W_EMPLOYEE_POSITION wp ON wp.DNHANVIENID = e.ID " +
         "LEFT JOIN (SELECT DNHANVIENID, MAX(EMAIL) AS EMAIL FROM SUSER " +
         "WHERE DNHANVIENID IS NOT NULL AND TRIM(COALESCE(EMAIL, '')) <> '' GROUP BY DNHANVIENID) su " +
         "ON su.DNHANVIENID = e.ID";
@@ -44,7 +45,8 @@ public sealed class HrRepository
         if (q.ActiveOnly == true) where.Add("e.STATUS = 30");
         if (!string.IsNullOrWhiteSpace(q.Search))
         {
-            where.Add("(e.NAME LIKE @s OR e.DIENTHOAI LIKE @s)");
+            where.Add("(e.NAME LIKE @s OR e.DIENTHOAI LIKE @s OR EXISTS (" +
+                "SELECT 1 FROM W_EMPLOYEE_POSITION wp2 WHERE wp2.DNHANVIENID = e.ID AND wp2.CHUCVU LIKE @s))");
             dp.Add("@s", $"%{q.Search.Trim()}%");
         }
         var whereSql = string.Join(" AND ", where);
@@ -81,6 +83,24 @@ public sealed class HrRepository
             VALUES (@id, @email, NOW(3), @uid)
             ON DUPLICATE KEY UPDATE EMAIL = @email, UPDATED_AT = NOW(3), UPDATED_BY = @uid
             """, new { id = employeeId, email = email.Trim(), uid = userId });
+    }
+
+    /// <summary>Ghi/clear chức vụ nhân viên (W_EMPLOYEE_POSITION). Chuỗi rỗng ⇒ xoá.</summary>
+    public async Task UpsertEmployeePositionAsync(string employeeId, string? chucVu, string? userId, CancellationToken ct = default)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        if (string.IsNullOrWhiteSpace(chucVu))
+        {
+            await conn.ExecuteAsync("DELETE FROM W_EMPLOYEE_POSITION WHERE DNHANVIENID = @id",
+                new { id = employeeId });
+            return;
+        }
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO W_EMPLOYEE_POSITION (DNHANVIENID, CHUCVU, UPDATED_AT, UPDATED_BY)
+            VALUES (@id, @cv, NOW(3), @uid)
+            ON DUPLICATE KEY UPDATE CHUCVU = @cv, UPDATED_AT = NOW(3), UPDATED_BY = @uid
+            """, new { id = employeeId, cv = chucVu.Trim(), uid = userId });
     }
 
     /// <summary>Email của nhiều nhân viên (W_EMPLOYEE_EMAIL, fallback SUSER.EMAIL) — dùng gửi phiếu lương.</summary>

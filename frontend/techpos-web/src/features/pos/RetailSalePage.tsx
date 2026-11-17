@@ -406,12 +406,12 @@ const RetailSalePage: React.FC = () => {
             />
           </Col>
           <Col xs={12} md={5}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#7E7359', marginBottom: 4 }}>Nhân viên bán</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#7E7359', marginBottom: 4 }}>Nhân viên xuất hoá đơn</div>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="Nhân viên"
+              placeholder="Nhân viên xuất hoá đơn"
               style={{ width: '100%' }}
               value={nhanVienId ?? undefined}
               onChange={(v) => setNhanVien(v ?? null)}
@@ -805,7 +805,7 @@ const RetailSalePage: React.FC = () => {
             {selectedCustomer?.dienThoai && <div style={{ color: '#7E7359' }}>ĐT: {selectedCustomer.dienThoai}</div>}
             {selectedCustomer?.diaChi && <div style={{ color: '#7E7359' }}>Địa chỉ: {selectedCustomer.diaChi}</div>}
             <div style={{ color: '#7E7359' }}>
-              Nhân viên: {selectedEmployee?.name ?? '—'} · Kho: {selectedWarehouse?.name ?? '—'}
+              Nhân viên xuất HĐ: <b>{selectedEmployee?.name ?? '—'}</b> · Kho: {selectedWarehouse?.name ?? '—'}
             </div>
           </div>
           <Table

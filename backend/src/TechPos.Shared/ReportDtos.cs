@@ -105,6 +105,7 @@ public sealed class InvoiceDto
     public string? DiaChi { get; set; }
     public string? DienThoai { get; set; }
     public string? NhanVien { get; set; }
+    public string? NhanVienDienThoai { get; set; }
     public string? Kho { get; set; }
     public decimal TienHang { get; set; }
     public decimal TienGiamGia { get; set; }
