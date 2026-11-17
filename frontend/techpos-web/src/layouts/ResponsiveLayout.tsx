@@ -339,7 +339,7 @@ export const DesktopLayout: React.FC<{ children: React.ReactNode }> = ({ childre
           boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)',
           height: 60
         }}>
-          {/* Lối tắt bán lẻ POS nhanh */}
+          {/* Lối tắt bán hàng nhanh: Bán lẻ + Bán sỉ */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Button
               type="primary"
@@ -348,6 +348,14 @@ export const DesktopLayout: React.FC<{ children: React.ReactNode }> = ({ childre
               onClick={() => navigate('/pos/retail')}
             >
               ⚡ BÁN LẺ
+            </Button>
+            <Button
+              type="primary"
+              size="small"
+              className="gold-gradient-btn"
+              onClick={() => navigate('/pos/wholesale')}
+            >
+              ⚡ BÁN SỈ
             </Button>
           </div>
 
