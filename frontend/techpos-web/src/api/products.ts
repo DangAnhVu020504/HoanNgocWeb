@@ -3,8 +3,12 @@ import { http, ApiEnvelope } from './http';
 export interface Product {
   id: string;
   code: string | null;
+  maSanCo: string | null;
   name: string;
   note: string | null;
+  nhomMatHangId: string | null;
+  donViTinhId: string | null;
+  hangSanXuatId: string | null;
   giaBan: number;
   giaBan2: number;
   /** Giá bán chẵn (GIABANCHAN) — theo đơn vị chẵn */
@@ -30,6 +34,12 @@ export interface Product {
 }
 
 export interface ProductGroup {
+  id: string;
+  name: string;
+  status: number;
+}
+
+export interface ProductUnit {
   id: string;
   name: string;
   status: number;
@@ -79,6 +89,21 @@ export async function getProduct(id: string): Promise<Product> {
 
 export async function getProductGroups(): Promise<ProductGroup[]> {
   const res = await http.get<ApiEnvelope<ProductGroup[]>>('/products/groups');
+  return res.data.data;
+}
+
+export async function getProductUnits(): Promise<ProductUnit[]> {
+  const res = await http.get<ApiEnvelope<ProductUnit[]>>('/products/units');
+  return res.data.data;
+}
+
+export interface ProductGroupCreateInput {
+  name: string;
+  note?: string | null;
+}
+
+export async function createProductGroup(input: ProductGroupCreateInput): Promise<{ id: string; name: string }> {
+  const res = await http.post<ApiEnvelope<{ id: string; name: string }>>('/products/groups', input);
   return res.data.data;
 }
 

@@ -72,6 +72,12 @@ export async function createSale(req: PosCreateRequest): Promise<PosSaleResult> 
   return res.data.data;
 }
 
+/** Số hoá đơn bán lẻ kế tiếp (tự động, chỉ xem trước). */
+export async function getNextInvoiceNumber(): Promise<string> {
+  const res = await http.get<ApiEnvelope<string>>('/pos/next-number');
+  return res.data.data;
+}
+
 export interface PosSaleLineInput {
   matHangId: string;
   khoHangId: string | null;

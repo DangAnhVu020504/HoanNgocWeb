@@ -24,6 +24,15 @@ public sealed class PosController(PosSaleService pos, WholesaleService wholesale
         return Ok(ApiResult<SaleTotals>.Ok(totals, HttpContext.TraceIdentifier));
     }
 
+    /// <summary>Số hoá đơn bán lẻ kế tiếp (tự động, chỉ xem trước — không tăng sequence).</summary>
+    [HttpGet("next-number")]
+    [RequirePermission("SALES.INVOICE.CREATE")]
+    public async Task<IActionResult> NextNumber(CancellationToken ct)
+    {
+        var soPhieu = await pos.GetNextInvoiceNumberAsync(ct);
+        return Ok(ApiResult<string>.Ok(soPhieu, HttpContext.TraceIdentifier));
+    }
+
     /// <summary>Thanh toán (F12) — tạo hoá đơn bán lẻ.</summary>
     [HttpPost("sales")]
     [RequirePermission("SALES.INVOICE.CREATE")]

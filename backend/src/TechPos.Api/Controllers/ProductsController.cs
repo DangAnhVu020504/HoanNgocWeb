@@ -50,6 +50,23 @@ public sealed class ProductsController(ProductService products, CatalogImportSer
         => Ok(ApiResult<IReadOnlyList<ProductGroupDto>>.Ok(
             await products.GetGroupsAsync(ct), HttpContext.TraceIdentifier));
 
+    [HttpGet("units")]
+    [RequirePermission("SALES.PRODUCT.VIEW")]
+    public async Task<IActionResult> Units(CancellationToken ct)
+        => Ok(ApiResult<IReadOnlyList<ProductUnitDto>>.Ok(
+            await products.GetUnitsAsync(ct), HttpContext.TraceIdentifier));
+
+    [HttpPost("groups")]
+    [RequirePermission("SALES.PRODUCT.CREATE")]
+    public async Task<IActionResult> CreateGroup([FromBody] ProductGroupCreateRequest req, CancellationToken ct)
+    {
+        var (uid, uname, ip, ua) = CurrentUser.Info(HttpContext);
+        var result = await products.CreateGroupAsync(req, uid, ct);
+        await AuditLogger.WriteAsync(db, uid, uname, "CREATE", "DNHOMMATHANG", result.Id,
+            newValue: req, ip: ip, userAgent: ua, correlationId: HttpContext.TraceIdentifier, ct: ct);
+        return Ok(ApiResult<CatalogCreateResult>.Ok(result, HttpContext.TraceIdentifier));
+    }
+
     [HttpGet("{id}/stock")]
     [RequirePermission("SALES.PRODUCT.VIEW")]
     public async Task<IActionResult> Stock(string id, CancellationToken ct)

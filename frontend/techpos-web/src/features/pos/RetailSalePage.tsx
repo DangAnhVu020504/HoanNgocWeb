@@ -9,7 +9,7 @@ import {
   PlusOutlined, PrinterOutlined, QrcodeOutlined, SearchOutlined, ShoppingCartOutlined, UserOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { createSale, type PosSaleResult } from '../../api/pos';
+import { createSale, getNextInvoiceNumber, type PosSaleResult } from '../../api/pos';
 import { downloadInvoicePdf, printInvoicePdf } from '../../api/reports';
 import { getProducts, type Product } from '../../api/products';
 import { getCustomers, type Customer } from '../../api/customers';
@@ -63,6 +63,7 @@ const RetailSalePage: React.FC = () => {
   const [thuePct, setThuePct] = useState(0);
   const [paying, setPaying] = useState(false);
   const [lastBill, setLastBill] = useState<PosSaleResult | null>(null);
+  const [nextSoPhieu, setNextSoPhieu] = useState('—');
   const [stockByProduct, setStockByProduct] = useState<Record<string, number>>({});
   const [showQr, setShowQr] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -77,6 +78,11 @@ const RetailSalePage: React.FC = () => {
   };
 
   useEffect(() => { void loadProducts(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, []);
+
+  // Số hoá đơn tự động — tải số kế tiếp, làm mới sau mỗi lần thanh toán
+  useEffect(() => {
+    getNextInvoiceNumber().then(setNextSoPhieu).catch(() => setNextSoPhieu('—'));
+  }, [lastBill]);
 
   useEffect(() => {
     getWarehouses({ activeOnly: true, pageSize: 50 }).then((r) => {
@@ -106,7 +112,10 @@ const RetailSalePage: React.FC = () => {
   const tienHang = useMemo(() => round0(lines.reduce((s, l) => s + lineAmount(l), 0)), [lines]);
   const giamTile = round0(tienHang * (Math.max(0, Math.min(100, tileGiamGia)) / 100));
   const giamTong = round0(Math.min(Math.max(0, tienGiamGia) + giamTile, tienHang));
-  const tongCong = round0(tienHang - giamTong + Math.max(0, tienThue) + Math.max(0, phiVanChuyen));
+  // Thuế tính trên giá trị sau giảm giá; nếu nhập thuế suất thì tự động tính lại khi giảm giá thay đổi
+  const thueBase = Math.max(0, tienHang - giamTong);
+  const tienThueApDung = thuePct > 0 ? round0(thueBase * thuePct / 100) : Math.max(0, tienThue);
+  const tongCong = round0(tienHang - giamTong + tienThueApDung + Math.max(0, phiVanChuyen));
   const traLai = round0(Math.max(0, khachDua - tongCong));
   const conNo = round0(Math.max(0, tongCong - khachDua));
 
@@ -134,7 +143,7 @@ const RetailSalePage: React.FC = () => {
         ghiChu: ghiChu.trim() || null,
         khachDua: khachDua > 0 ? khachDua : tongCong,
         dienGiai: dienGiai.trim() || null,
-        tienThue,
+        tienThue: tienThueApDung,
         phiVanChuyen,
       });
       setLastBill(result);
@@ -182,27 +191,33 @@ const RetailSalePage: React.FC = () => {
     {
       title: 'Mã hàng',
       dataIndex: 'code',
-      width: 105,
+      width: 92,
       render: (v) => <span className="code-badge">{v ?? '—'}</span>
     },
     {
       title: 'Tên hàng hóa',
       dataIndex: 'name',
       ellipsis: true,
-      render: (v) => <b style={{ color: '#1C180E' }}>{v}</b>
+      render: (v, p) => (
+        <span>
+          <b style={{ color: '#1C180E' }}>{v}</b>
+          {p.donViTinh && (
+            <span style={{ color: '#7E7359', fontSize: 11, marginLeft: 4 }}>({p.donViTinh})</span>
+          )}
+        </span>
+      )
     },
     {
-      title: 'Giá bán lẻ',
+      title: 'Giá bán',
       dataIndex: 'giaBan',
-      width: 120,
+      width: 100,
       align: 'right',
-      render: (v) => <b style={{ color: '#8A6100', fontFamily: 'Outfit' }}>{fmtVnd(v)}</b>
+      render: (v) => <b style={{ color: '#8A6100', fontFamily: 'Outfit', fontSize: 13 }}>{fmtVnd(v)}</b>
     },
-    { title: 'ĐVT', dataIndex: 'donViTinh', width: 65, align: 'center' },
     {
       title: 'Tồn',
       key: 'ton',
-      width: 90,
+      width: 60,
       align: 'right',
       render: (_, p) => {
         const stock = tonCua(p.id);
@@ -217,7 +232,7 @@ const RetailSalePage: React.FC = () => {
     {
       title: '',
       key: 'add',
-      width: 48,
+      width: 40,
       align: 'center',
       render: (_, p) => (
         <Button
@@ -348,6 +363,10 @@ const RetailSalePage: React.FC = () => {
 
   return (
     <Space direction="vertical" style={{ width: '100%' }} size={16}>
+      <Row gutter={[16, 16]}>
+        {/* CỘT TRÁI: HÓA ĐƠN BÁN HÀNG + DANH SÁCH MẶT HÀNG (CÙNG ĐỘ RỘNG) */}
+        <Col xs={24} lg={9}>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
       {/* HEADER HÓA ĐƠN & THÔNG TIN CHUNG */}
       <Card
         className="luxury-card"
@@ -370,19 +389,19 @@ const RetailSalePage: React.FC = () => {
         }
       >
         <Row gutter={[12, 10]}>
-          <Col xs={12} md={4}>
+          <Col xs={12}>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#7E7359', marginBottom: 4 }}>Ngày lập</div>
             <Input readOnly value={new Date().toLocaleDateString('vi-VN')} style={{ background: '#FAF8F2' }} />
           </Col>
-          <Col xs={12} md={4}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#7E7359', marginBottom: 4 }}>Số HĐ gần nhất</div>
+          <Col xs={12}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#7E7359', marginBottom: 4 }}>Số hóa đơn (tự động)</div>
             <Input
               readOnly
-              value={lastBill?.soPhieu ?? '—'}
+              value={nextSoPhieu}
               style={{ color: '#10B981', fontWeight: 700, fontFamily: 'JetBrains Mono', background: '#FAF8F2' }}
             />
           </Col>
-          <Col xs={24} md={6}>
+          <Col xs={24}>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#7E7359', marginBottom: 4 }}>Khách hàng</div>
             <Select
               allowClear
@@ -395,7 +414,7 @@ const RetailSalePage: React.FC = () => {
               options={customers.map((c) => ({ value: c.id, label: `${c.maKhach ?? ''} — ${c.name}` }))}
             />
           </Col>
-          <Col xs={12} md={5}>
+          <Col xs={12}>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#7E7359', marginBottom: 4 }}>Kho xuất hàng</div>
             <Select
               placeholder="Chọn kho xuất"
@@ -405,7 +424,7 @@ const RetailSalePage: React.FC = () => {
               options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
             />
           </Col>
-          <Col xs={12} md={5}>
+          <Col xs={12}>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#7E7359', marginBottom: 4 }}>Nhân viên xuất hoá đơn</div>
             <Select
               allowClear
@@ -418,11 +437,11 @@ const RetailSalePage: React.FC = () => {
               options={employees.map((e) => ({ value: e.id, label: e.name }))}
             />
           </Col>
-          <Col xs={24} md={12}>
+          <Col xs={24}>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#7E7359', marginBottom: 4 }}>Diễn giải</div>
             <Input allowClear placeholder="Diễn giải hoá đơn" value={dienGiai} onChange={(e) => setDienGiai(e.target.value)} />
           </Col>
-          <Col xs={24} md={12}>
+          <Col xs={24}>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#7E7359', marginBottom: 4 }}>Ghi chú</div>
             <Input allowClear placeholder="Ghi chú hoá đơn" value={ghiChu} onChange={(e) => setGhiChu(e.target.value)} />
           </Col>
@@ -453,9 +472,7 @@ const RetailSalePage: React.FC = () => {
         </Card>
       )}
 
-      <Row gutter={[16, 16]}>
-        {/* CỘT TRÁI: LƯỚI CHỌN MẶT HÀNG */}
-        <Col xs={24} lg={13}>
+          {/* LƯỚI CHỌN MẶT HÀNG (THU GỌN) */}
           <Card
             className="luxury-card"
             title={
@@ -469,7 +486,7 @@ const RetailSalePage: React.FC = () => {
                 allowClear
                 prefix={<SearchOutlined style={{ color: '#D4AF37' }} />}
                 placeholder="Tìm mã hoặc tên hàng..."
-                style={{ width: 230, borderRadius: 8 }}
+                style={{ width: 190, borderRadius: 8 }}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -479,6 +496,8 @@ const RetailSalePage: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 6,
               marginBottom: 10,
               padding: '6px 12px',
               background: '#FFFDF5',
@@ -496,19 +515,20 @@ const RetailSalePage: React.FC = () => {
                   onChange={(v) => setPickSl(v ?? 1)}
                 />
               </Space>
-              <span style={{ color: '#A08D6A', fontSize: 12 }}>
-                💡 Click trực tiếp vào dòng để thêm nhanh vào giỏ
+              <span style={{ color: '#A08D6A', fontSize: 11 }}>
+                💡 Click dòng để thêm nhanh
               </span>
             </div>
 
             <Table
               className="luxury-table"
-              size="middle"
+              size="small"
               rowKey="id"
               pagination={false}
               dataSource={filteredProducts}
               columns={productColumns}
-              scroll={{ y: 320 }}
+              tableLayout="fixed"
+              scroll={{ y: 360 }}
               onRow={(p) => ({
                 onClick: () => addFromPicker(p),
                 style: { cursor: 'pointer' },
@@ -516,10 +536,11 @@ const RetailSalePage: React.FC = () => {
               locale={{ emptyText: <Empty description="Không tìm thấy mặt hàng phù hợp" /> }}
             />
           </Card>
+          </Space>
         </Col>
 
-        {/* CỘT PHẢI: GIỎ HÀNG + TỔNG CỘNG THANH TOÁN */}
-        <Col xs={24} lg={11}>
+        {/* CỘT PHẢI: GIỎ HÀNG + TỔNG CỘNG THANH TOÁN — NGANG HÀNG VỚI HÓA ĐƠN */}
+        <Col xs={24} lg={15}>
           <Card
             className="luxury-card"
             title={
@@ -598,15 +619,18 @@ const RetailSalePage: React.FC = () => {
                     onChange={(v) => {
                       const pct = v ?? 0;
                       setThuePct(pct);
-                      setTienThue(round0(tienHang * pct / 100));
+                      if (pct > 0) setTienThue(0);
                     }}
                   />
                   <InputNumber
                     size="small"
                     min={0}
                     style={{ width: 140, fontFamily: 'Outfit' }}
-                    value={tienThue}
-                    onChange={(v) => setTienThue(v ?? 0)}
+                    value={tienThueApDung}
+                    onChange={(v) => {
+                      setThuePct(0);
+                      setTienThue(v ?? 0);
+                    }}
                   />
                 </Space>
               </Descriptions.Item>
@@ -797,7 +821,7 @@ const RetailSalePage: React.FC = () => {
           </div>
           <Divider style={{ margin: '10px 0', borderColor: '#D4AF37' }} />
           <Row justify="space-between" style={{ fontSize: 13 }}>
-            <span>Số: <b style={{ color: '#8A6100' }}>{lastBill?.soPhieu ?? '(chưa lưu)'}</b></span>
+            <span>Số: <b style={{ color: '#8A6100' }}>{nextSoPhieu}</b></span>
             <span>Ngày: {new Date().toLocaleDateString('vi-VN')}</span>
           </Row>
           <div style={{ margin: '8px 0', fontSize: 13 }}>
@@ -828,7 +852,7 @@ const RetailSalePage: React.FC = () => {
           <div style={{ marginTop: 10, marginLeft: 'auto', width: 260, fontSize: 13 }}>
             <Row justify="space-between"><span style={{ color: '#7E7359' }}>Tiền hàng:</span><span>{fmtVnd(tienHang)}</span></Row>
             {giamTong > 0 && <Row justify="space-between"><span style={{ color: '#7E7359' }}>Giảm giá:</span><span style={{ color: '#E11D48' }}>- {fmtVnd(giamTong)}</span></Row>}
-            {tienThue > 0 && <Row justify="space-between"><span style={{ color: '#7E7359' }}>Thuế:</span><span>{fmtVnd(tienThue)}</span></Row>}
+            {tienThueApDung > 0 && <Row justify="space-between"><span style={{ color: '#7E7359' }}>Thuế:</span><span>{fmtVnd(tienThueApDung)}</span></Row>}
             {phiVanChuyen > 0 && <Row justify="space-between"><span style={{ color: '#7E7359' }}>Phí vận chuyển:</span><span>{fmtVnd(phiVanChuyen)}</span></Row>}
             <Divider style={{ margin: '6px 0', borderColor: '#D4AF37' }} />
             <Row justify="space-between">

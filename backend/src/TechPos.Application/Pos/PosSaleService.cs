@@ -35,6 +35,10 @@ public sealed class PosSaleService(PosSaleRepository repo)
     public SaleTotals ComputeTotals(IReadOnlyList<PosCartItemDto> cart, decimal tileGiamHoaDon, decimal tienGiamHoaDon, decimal khachDua)
         => PosCalculator.Compute(cart, tileGiamHoaDon, tienGiamHoaDon, khachDua);
 
+    /// <summary>Số hoá đơn bán lẻ kế tiếp để hiển thị tự động trên form POS.</summary>
+    public Task<string> GetNextInvoiceNumberAsync(CancellationToken ct = default)
+        => repo.PeekNextSoPhieuAsync(ct);
+
     public async Task<PosSaleResult> CreateSaleAsync(PosSaleRequest req, string userId, decimal khachDua, CancellationToken ct = default)
     {
         var vr = _validator.Validate(req);

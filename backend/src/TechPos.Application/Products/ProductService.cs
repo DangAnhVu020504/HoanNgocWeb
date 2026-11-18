@@ -37,6 +37,24 @@ public sealed class ProductService(ProductRepository repo, IOptions<FeatureFlagO
     public async Task<IReadOnlyList<ProductGroupDto>> GetGroupsAsync(CancellationToken ct = default)
         => await repo.GetGroupsAsync(ct);
 
+    public async Task<IReadOnlyList<ProductUnitDto>> GetUnitsAsync(CancellationToken ct = default)
+        => await repo.GetUnitsAsync(ct);
+
+    public async Task<CatalogCreateResult> CreateGroupAsync(
+        ProductGroupCreateRequest req, string userId, CancellationToken ct = default)
+    {
+        CatalogWriteGuard.EnsureWriteAllowed(flags.Value);
+        var name = req.Name?.Trim() ?? string.Empty;
+        if (name.Length == 0)
+            throw new ValidationException("Tên nhóm mặt hàng bắt buộc", []);
+        if (name.Length > 255)
+            throw new ValidationException("Tên nhóm mặt hàng ≤ 255 ký tự", []);
+        if (await repo.GroupNameExistsAsync(name, ct))
+            throw new ConflictException($"Nhóm mặt hàng '{name}' đã tồn tại");
+        var id = await repo.InsertGroupAsync(req with { Name = name }, userId, ct);
+        return new CatalogCreateResult(id, name);
+    }
+
     public async Task<IReadOnlyList<ProductStockDto>> GetStockAsync(string id, CancellationToken ct = default)
     {
         await GetAsync(id, ct); // đảm bảo tồn tại
@@ -52,13 +70,14 @@ public sealed class ProductService(ProductRepository repo, IOptions<FeatureFlagO
         if (!vr.IsValid)
             throw new ValidationException("Dữ liệu mặt hàng không hợp lệ",
                 vr.Errors.Select(e => new ApiError(e.PropertyName ?? "", e.ErrorCode ?? "", e.ErrorMessage)).ToList());
-        if (!string.IsNullOrWhiteSpace(req.Code) && await repo.CodeExistsAsync(req.Code, null, ct))
-            throw new ConflictException($"Mã mặt hàng '{req.Code}' đã tồn tại");
-        var groupIds = new[] { req.NhomMatHangId, req.DonViTinhId, req.HangSanXuatId }
-            .Where(g => !string.IsNullOrWhiteSpace(g)).Select(g => g!).ToList();
-        if (groupIds.Count > 0 && !await repo.GroupsExistAsync(groupIds, ct))
+        var code = string.IsNullOrWhiteSpace(req.Code)
+            ? await repo.GenerateNextCodeAsync(ct)
+            : req.Code.Trim();
+        if (await repo.CodeExistsAsync(code, null, ct))
+            throw new ConflictException($"Mã mặt hàng '{code}' đã tồn tại");
+        if (!await repo.ReferencesExistAsync(req.NhomMatHangId, req.DonViTinhId, req.HangSanXuatId, ct))
             throw new ValidationException("Nhóm hàng / ĐVT / hãng sản xuất không tồn tại", []);
-        var id = await repo.InsertAsync(req, userId, ct);
+        var id = await repo.InsertAsync(req with { Code = code }, userId, ct);
         return new CatalogCreateResult(id, req.Name);
     }
 
@@ -66,9 +85,7 @@ public sealed class ProductService(ProductRepository repo, IOptions<FeatureFlagO
     {
         CatalogWriteGuard.EnsureWriteAllowed(flags.Value);
         _ = await GetAsync(id, ct);
-        var groupIds = new[] { req.NhomMatHangId, req.DonViTinhId }
-            .Where(g => !string.IsNullOrWhiteSpace(g)).Select(g => g!).ToList();
-        if (groupIds.Count > 0 && !await repo.GroupsExistAsync(groupIds, ct))
+        if (!await repo.ReferencesExistAsync(req.NhomMatHangId, req.DonViTinhId, null, ct))
             throw new ValidationException("Nhóm hàng / ĐVT không tồn tại", []);
         var updated = await repo.UpdateAsync(id, req, userId, ct);
         if (updated == 0) throw new NotFoundException($"Không tìm thấy mặt hàng {id}");

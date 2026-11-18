@@ -5,13 +5,13 @@ import {
 } from 'antd';
 import {
   BarcodeOutlined, EditOutlined, PlusOutlined, ReloadOutlined,
-  SearchOutlined, UploadOutlined
+  SearchOutlined, TagsOutlined, UploadOutlined
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
-  createProduct, deleteProduct, getProduct, getProductGroups, getProductStock, getProducts,
-  updateProduct,
-  Product, ProductGroup, ProductStock
+  createProduct, createProductGroup, deleteProduct, getProduct, getProductGroups, getProductStock,
+  getProducts, getProductUnits, updateProduct,
+  Product, ProductGroup, ProductStock, ProductUnit
 } from '../../api/products';
 import { http } from '../../api/http';
 import { openBarcode } from '../../api/reports';
@@ -46,6 +46,7 @@ const ProductsPage: React.FC = () => {
 
   const [items, setItems] = useState<Product[]>([]);
   const [groups, setGroups] = useState<ProductGroup[]>([]);
+  const [units, setUnits] = useState<ProductUnit[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -66,6 +67,11 @@ const ProductsPage: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [groupSaving, setGroupSaving] = useState(false);
+  const [groupErr, setGroupErr] = useState<string | null>(null);
+
   const load = async () => {
     try {
       setErr(null);
@@ -84,6 +90,7 @@ const ProductsPage: React.FC = () => {
 
   useEffect(() => {
     getProductGroups().then(setGroups).catch(() => { /* nhóm không bắt buộc */ });
+    getProductUnits().then(setUnits).catch(() => { /* ĐVT không bắt buộc */ });
   }, []);
 
   const openDetail = async (id: string) => {
@@ -115,7 +122,8 @@ const ProductsPage: React.FC = () => {
       giaNhap: p.giaNhap,
       tonToiThieu: p.tonToiThieu,
       tonToiDa: p.tonToiDa,
-      nhomMatHangId: groups.find((g) => g.name === p.nhomMatHang)?.id,
+      nhomMatHangId: p.nhomMatHangId ?? groups.find((g) => g.name === p.nhomMatHang)?.id,
+      donViTinhId: p.donViTinhId ?? units.find((u) => u.name === p.donViTinh)?.id,
       xuatXu: p.xuatXu,
       mauSac: p.mauSac,
       chatLieu: p.chatLieu,
@@ -144,6 +152,33 @@ const ProductsPage: React.FC = () => {
       message.error(apiErrMsg(e, 'Lỗi lưu mặt hàng'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openGroupManager = () => {
+    setGroupErr(null);
+    setGroupModalOpen(true);
+  };
+
+  const saveGroup = async () => {
+    const name = groupName.trim();
+    if (!name) {
+      void message.warning('Nhập tên nhóm mặt hàng');
+      return;
+    }
+    setGroupSaving(true);
+    setGroupErr(null);
+    try {
+      const created = await createProductGroup({ name });
+      void message.success(`Đã tạo nhóm "${created.name}"`);
+      setGroupName('');
+      const list = await getProductGroups();
+      setGroups(list);
+      if (formOpen) form.setFieldValue('nhomMatHangId', created.id);
+    } catch (e: unknown) {
+      setGroupErr(apiErrMsg(e, 'Lỗi tạo nhóm mặt hàng'));
+    } finally {
+      setGroupSaving(false);
     }
   };
 
@@ -272,6 +307,11 @@ const ProductsPage: React.FC = () => {
               className="gold-gradient-btn"
             >
               Thêm mặt hàng
+            </Button>
+          )}
+          {canCreate && (
+            <Button icon={<TagsOutlined />} onClick={openGroupManager}>
+              Nhóm mặt hàng
             </Button>
           )}
           {canCreate && (
@@ -448,16 +488,49 @@ const ProductsPage: React.FC = () => {
           {!editing && (
             <Row gutter={12}>
               <Col span={12}>
-                <Form.Item name="code" label="Mã hàng"><Input placeholder="Tự động nếu để trống" /></Form.Item>
+                <Form.Item name="code" label="Mã hàng"><Input placeholder="Để trống để tự sinh (VD: SP000001)" /></Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item name="maSanCo" label="Mã vạch / Barcode"><Input placeholder="Quét mã vạch có sẵn" /></Form.Item>
               </Col>
             </Row>
           )}
-          <Form.Item name="nhomMatHangId" label="Nhóm mặt hàng">
-            <Select allowClear placeholder="Chọn nhóm hàng" options={groups.map((g) => ({ value: g.id, label: g.name }))} />
-          </Form.Item>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item label="Nhóm mặt hàng" style={{ marginBottom: 24 }}>
+                <Space.Compact style={{ width: '100%' }}>
+                  <Form.Item name="nhomMatHangId" noStyle>
+                    <Select
+                      allowClear
+                      showSearch
+                      optionFilterProp="label"
+                      placeholder="Chọn nhóm hàng"
+                      options={groups.map((g) => ({ value: g.id, label: g.name }))}
+                      style={{ width: '100%' }}
+                    />
+                  </Form.Item>
+                  {canCreate && (
+                    <Button
+                      icon={<PlusOutlined />}
+                      title="Tạo nhóm mặt hàng mới"
+                      onClick={openGroupManager}
+                    />
+                  )}
+                </Space.Compact>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="donViTinhId" label="Đơn vị tính">
+                <Select
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder="Chọn đơn vị tính"
+                  options={units.map((u) => ({ value: u.id, label: u.name }))}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
           <Row gutter={12}>
             <Col span={12}>
               <Form.Item name="giaBan" label="Giá bán lẻ (VNĐ)">
@@ -494,6 +567,55 @@ const ProductsPage: React.FC = () => {
             </Form.Item>
           )}
         </Form>
+      </Modal>
+
+      {/* MODAL QUẢN LÝ / TẠO NHÓM MẶT HÀNG */}
+      <Modal
+        title={<span style={{ color: '#8A6100', fontWeight: 800 }}>Nhóm Mặt Hàng</span>}
+        open={groupModalOpen}
+        onCancel={() => setGroupModalOpen(false)}
+        footer={null}
+        width={560}
+      >
+        <Space direction="vertical" size={14} style={{ width: '100%' }}>
+          {groupErr && <Alert type="error" showIcon message={groupErr} closable onClose={() => setGroupErr(null)} />}
+          {canCreate && (
+            <Space.Compact style={{ width: '100%' }}>
+              <Input
+                autoFocus
+                allowClear
+                maxLength={255}
+                placeholder="Tên nhóm mới (VD: TẠP HÓA)"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                onPressEnter={() => void saveGroup()}
+              />
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                loading={groupSaving}
+                className="gold-gradient-btn"
+                onClick={() => void saveGroup()}
+              >
+                Thêm nhóm
+              </Button>
+            </Space.Compact>
+          )}
+          <div>
+            <div style={{ fontSize: 12, color: '#7E7359', marginBottom: 8 }}>
+              Danh sách nhóm hiện có ({groups.length})
+            </div>
+            {groups.length === 0 ? (
+              <Empty description="Chưa có nhóm mặt hàng" />
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 240, overflowY: 'auto' }}>
+                {groups.map((g) => (
+                  <Tag key={g.id} color="gold" style={{ marginInlineEnd: 0 }}>{g.name}</Tag>
+                ))}
+              </div>
+            )}
+          </div>
+        </Space>
       </Modal>
     </Space>
   );

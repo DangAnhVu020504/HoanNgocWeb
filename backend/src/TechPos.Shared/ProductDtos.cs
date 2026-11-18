@@ -9,8 +9,12 @@ public sealed class ProductDto
 {
     public string Id { get; set; } = string.Empty;
     public string? Code { get; set; }
+    public string? MaSanCo { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Note { get; set; }
+    public string? NhomMatHangId { get; set; }
+    public string? DonViTinhId { get; set; }
+    public string? HangSanXuatId { get; set; }
     public decimal GiaBan { get; set; }
     public decimal GiaBan2 { get; set; }   // GIABAN2 = "Giá bán sỉ" (bán sỉ 4.2)
     public decimal GiaBanChan { get; set; } // GIABANCHAN = "Giá bán chẵn" (bán theo đơn vị chẵn)
@@ -42,6 +46,17 @@ public sealed class ProductGroupDto
     public string Name { get; set; } = string.Empty;
     public int Status { get; set; }
 }
+
+/// <summary>DTO danh mục đơn vị tính (DDONVITINH).</summary>
+public sealed class ProductUnitDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int Status { get; set; }
+}
+
+/// <summary>Tạo nhóm mặt hàng mới (DNHOMMATHANG).</summary>
+public sealed record ProductGroupCreateRequest(string Name, string? Note = null);
 
 /// <summary>DTO tồn kho theo kho (OTONKHO).</summary>
 public sealed class ProductStockDto

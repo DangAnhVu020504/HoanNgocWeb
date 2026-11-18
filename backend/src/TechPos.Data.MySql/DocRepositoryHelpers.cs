@@ -26,7 +26,7 @@ public static class DocRepositoryHelpers
     /// thiếu cấu hình hoặc chưa xác minh (VERIFIED=0) — giống PosSaleRepository/ReceiptRepository.
     /// </summary>
     public static async Task<DocTypeMap> GetDocTypeAsync(
-        MySqlConnection conn, MySqlTransaction tx, string docType, CancellationToken ct = default)
+        MySqlConnection conn, MySqlTransaction? tx, string docType, CancellationToken ct = default)
     {
         var row = await conn.QueryFirstOrDefaultAsync<DocTypeMapRow>(
             "SELECT LOAI AS Loai, MODE_VAL AS Mode, PREFIX AS Prefix, VERIFIED AS Verified " +
@@ -40,6 +40,17 @@ public static class DocRepositoryHelpers
                 $"LOAI/MODE cho '{docType}' chưa được xác minh trên DB production (VERIFIED=0). " +
                 "Hãy xác minh tập giá trị LOAI/MODE trên DB thật rồi UPDATE W_DOC_TYPE_MAP SET VERIFIED=1.");
         return new DocTypeMap(row.Loai, row.Mode ?? -1, row.Prefix, row.Verified);
+    }
+
+    /// <summary>Xem trước số phiếu kế tiếp (không tăng sequence) — dùng hiển thị tự động trên form.</summary>
+    public static async Task<string> PeekNextSoPhieuAsync(
+        MySqlConnection conn, MySqlTransaction? tx, string prefix, CancellationToken ct = default)
+    {
+        var year = DateTime.Now.Year;
+        var last = await conn.ExecuteScalarAsync<long?>(
+            "SELECT LAST_SEQ FROM W_DOC_SEQUENCE WHERE PREFIX_=@p AND YEAR_=@y",
+            new { p = prefix, y = year }, tx);
+        return $"{prefix}{year % 100:D2}/{(last ?? 0) + 1:D5}";
     }
 
     /// <summary>Số phiếu kế tiếp theo prefix + năm (BL26/00001) — tăng trong transaction nên không race.</summary>

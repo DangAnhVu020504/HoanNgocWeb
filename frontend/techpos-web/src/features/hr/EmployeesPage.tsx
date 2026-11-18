@@ -81,6 +81,7 @@ const EmployeesPage: React.FC = () => {
       </Space>
     }>
       <Table className="luxury-table" size="middle" rowKey="id" loading={loading} dataSource={rows}
+        scroll={{ x: 'max-content' }}
         pagination={{ current: page, pageSize: 20, total, showSizeChanger: false,
           onChange: (p) => { setPage(p); void load(p, search); } }}
         columns={[

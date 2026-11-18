@@ -15,9 +15,10 @@ public sealed class ProductRepository
 
     private static readonly string[] SelectCols =
     [
-        "p.ID", "p.CODE", "p.NAME", "p.NOTE", "p.GIABAN", "p.GIABAN2", "p.GIABANCHAN", "p.GIANHAP", "p.GIAVON",
+        "p.ID", "p.CODE", "p.MASANCO AS MaSanCo", "p.NAME", "p.NOTE", "p.GIABAN", "p.GIABAN2", "p.GIABANCHAN", "p.GIANHAP", "p.GIAVON",
         "p.TONTOITHIEU", "p.TONTOIDA", "p.HOAHONG", "p.STATUS", "p.XUATXU", "p.MAUSAC",
-        "p.CHATLIEU", "p.COHANSUDUNG", "p.COSERI", "p.TIMECREATED", "p.TIMEMODIFIED"
+        "p.CHATLIEU", "p.COHANSUDUNG", "p.COSERI", "p.TIMECREATED", "p.TIMEMODIFIED",
+        "p.DNHOMMATHANGID AS NhomMatHangId", "p.DDONVITINHID AS DonViTinhId", "p.DHANGSANXUATID AS HangSanXuatId"
     ];
 
     public async Task<(IReadOnlyList<ProductDto> Items, long Total)> SearchAsync(
@@ -109,8 +110,47 @@ public sealed class ProductRepository
     {
         await using var conn = await _factory.OpenAsync(ct);
         var rows = await conn.QueryAsync<ProductGroupDto>(
-            "SELECT ID, NAME, STATUS FROM DNHOMMATHANG WHERE STATUS = 30 ORDER BY NAME");
+            "SELECT ID, NAME, STATUS FROM DNHOMMATHANG WHERE STATUS = 30 AND W_DELETED = 0 ORDER BY NAME");
         return rows.ToList();
+    }
+
+    public async Task<IReadOnlyList<ProductUnitDto>> GetUnitsAsync(CancellationToken ct = default)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        var rows = await conn.QueryAsync<ProductUnitDto>(
+            "SELECT ID, NAME, STATUS FROM DDONVITINH WHERE STATUS = 30 AND W_DELETED = 0 ORDER BY NAME");
+        return rows.ToList();
+    }
+
+    public async Task<bool> GroupNameExistsAsync(string name, CancellationToken ct = default)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        var n = await conn.ExecuteScalarAsync<long>(
+            "SELECT COUNT(*) FROM DNHOMMATHANG WHERE NAME = @name AND W_DELETED = 0", new { name });
+        return n > 0;
+    }
+
+    public async Task<string> InsertGroupAsync(ProductGroupCreateRequest r, string userId, CancellationToken ct = default)
+    {
+        var id = Guid.NewGuid().ToString();
+        await using var conn = await _factory.OpenAsync(ct);
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO DNHOMMATHANG
+            (ID, NAME, NOTE, STATUS, USERCREATEDID, TIMECREATED, SORTORDER,
+             W_SYNC_AT, W_SYNC_REV, W_ORIGIN, W_ROW_HASH, W_DELETED)
+            VALUES
+            (@id, @name, @note, 30, @uc, @tc, '',
+             NOW(3), 0, 'WEB', NULL, 0)
+            """, new
+            {
+                id,
+                name = r.Name.Trim(),
+                note = string.IsNullOrWhiteSpace(r.Note) ? null : r.Note.Trim(),
+                uc = userId,
+                tc = DateTime.Now
+            });
+        return id;
     }
 
     public async Task<IReadOnlyList<ProductStockDto>> GetStockAsync(string productId, CancellationToken ct = default)
@@ -146,17 +186,41 @@ public sealed class ProductRepository
         return n > 0;
     }
 
-    public async Task<bool> GroupsExistAsync(IEnumerable<string> ids, CancellationToken ct = default)
+    /// <summary>Kiểm tra Nhóm hàng / ĐVT / Hãng sản xuất tồn tại đúng bảng danh mục tương ứng.</summary>
+    public async Task<bool> ReferencesExistAsync(
+        string? nhomMatHangId, string? donViTinhId, string? hangSanXuatId, CancellationToken ct = default)
     {
-        var idList = ids.Where(i => !string.IsNullOrWhiteSpace(i)).ToList();
-        if (idList.Count == 0) return true;
+        (string Table, string? Id)[] refs =
+        [
+            ("DNHOMMATHANG", nhomMatHangId),
+            ("DDONVITINH", donViTinhId),
+            ("DHANGSANXUAT", hangSanXuatId)
+        ];
         await using var conn = await _factory.OpenAsync(ct);
-        var dp = new DynamicParameters();
-        for (int i = 0; i < idList.Count; i++) dp.Add("@g" + i, idList[i]);
-        var inSql = string.Join(", ", idList.Select((_, i) => "@g" + i));
-        var n = await conn.ExecuteScalarAsync<long>(
-            $"SELECT COUNT(*) FROM DNHOMMATHANG WHERE ID IN ({inSql}) AND W_DELETED = 0", dp);
-        return n == idList.Count;
+        foreach (var (table, id) in refs)
+        {
+            if (string.IsNullOrWhiteSpace(id)) continue;
+            var n = await conn.ExecuteScalarAsync<long>(
+                $"SELECT COUNT(*) FROM {table} WHERE ID = @id AND W_DELETED = 0", new { id });
+            if (n == 0) return false;
+        }
+        return true;
+    }
+
+    /// <summary>Sinh mã mặt hàng tự động dạng SP000001 (tuần tự, không trùng toàn bộ DMATHANG).</summary>
+    public async Task<string> GenerateNextCodeAsync(CancellationToken ct = default)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        var max = await conn.ExecuteScalarAsync<long>(
+            "SELECT COALESCE(MAX(CAST(SUBSTRING(CODE, 3) AS UNSIGNED)), 0) " +
+            "FROM DMATHANG WHERE CODE REGEXP '^SP[0-9]+$'");
+        var next = max + 1;
+        while (await conn.ExecuteScalarAsync<long>(
+            "SELECT COUNT(*) FROM DMATHANG WHERE CODE = @c", new { c = $"SP{next:D6}" }) > 0)
+        {
+            next++;
+        }
+        return $"SP{next:D6}";
     }
 
     public async Task<string> InsertAsync(ProductCreateRequest r, string userId, CancellationToken ct = default)

@@ -39,6 +39,14 @@ public sealed class PosSaleRepository
         return $"{prefix}{year % 100:D2}/{seq:D5}";
     }
 
+    /// <summary>Số hoá đơn bán lẻ kế tiếp (chỉ xem trước, không tăng sequence).</summary>
+    public async Task<string> PeekNextSoPhieuAsync(CancellationToken ct = default)
+    {
+        await using var conn = await _factory.OpenAsync(ct);
+        var map = await DocRepositoryHelpers.GetDocTypeAsync(conn, null, "BAN_LE", ct);
+        return await DocRepositoryHelpers.PeekNextSoPhieuAsync(conn, null, map.Prefix, ct);
+    }
+
     /// <summary>Tạo hoá đơn bán lẻ hoàn chỉnh trong 1 transaction (W_ORIGIN='WEB').</summary>
     public async Task<PosSaleResult> CreateSaleAsync(
         PosSaleRequest req, SaleTotals totals, string userId, CancellationToken ct = default)

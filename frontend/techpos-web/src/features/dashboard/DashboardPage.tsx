@@ -10,6 +10,7 @@ import {
 import { getDashboardSummary, DashboardDocBucket, DashboardSummary } from '../../api/dashboard';
 import { getSyncStatus, SyncStatus } from '../../api/sync';
 import { useAuthStore } from '../../stores/authStore';
+import DashboardCharts from './DashboardCharts';
 
 const fmtVnd = (n: number | string | null | undefined) => {
   if (n === null || n === undefined) return '0 ₫';
@@ -314,6 +315,9 @@ const DashboardPage: React.FC = () => {
               </Col>
             </Row>
           </Card>
+
+          {/* BÁO CÁO TRỰC QUAN — BIỂU ĐỒ DOANH THU / THU CHI / TOP MẶT HÀNG */}
+          <DashboardCharts />
 
           {/* DỮ LIỆU CHỨNG TỪ & DANH MỤC */}
           <Row gutter={[16, 16]}>
